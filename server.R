@@ -123,8 +123,8 @@ server <- function(input, output, session) {
         hc_title(text = "Publication Trends") %>%
         hc_legend(enabled = T) %>%
         #hc_xAxis(title = "Year", categories = df_summary$year, crosshair = T) %>%
-        hc_yAxis_multiples(list(title = list(text = "# Publications"), opposite=FALSE),
-                           list(title = list(text = "Total Citations"), opposite=TRUE)) %>% 
+        hc_yAxis_multiples(list(title = list(text = "# Publications"), opposite=FALSE, min = 0),
+                           list(title = list(text = "Total Citations"), opposite=TRUE, min = 0)) %>% 
         
         #hc_add_series(data = df_summary, mapping = hcaes(x = year, y = n_pubs), name = "# Publications", type = 'column', color = "#FF9500") %>% #,
                       #tooltip = list(pointFormat = "<span style='color:{FF9500}'>\u25CF</span> # Publications {point.n_pubs} </span>")) %>%
