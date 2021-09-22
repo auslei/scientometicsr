@@ -5,12 +5,14 @@ library(ggplot2)
 library(dplyr)
 library(tm)
 library(SnowballC)
+library(tidyverse)
 
 
-
+# stopwords
 customer_sw <- c('automated', 'automation', 'building', 'construction', 'code', 'compliance',
                  'machine', 'learning')
 
+# preprocessing
 docs <- Corpus(VectorSource(df$abstract))
 docs <- tm_map(docs, stripWhitespace)
 docs <- tm_map(docs, removePunctuation)
@@ -20,14 +22,19 @@ docs <- tm_map(docs, removeWords, stopwords("english"))
 docs <- tm_map(docs, removeWords, customer_sw)
 docs <- tm_map(docs,stemDocument)
 
+# generate DTM
 tm <- DocumentTermMatrix(docs)
 
+#apply LDA
 ap_lda <- LDA(tm, k = 6, control = list(seed = 1234))
 ap_lda
 
 
 ap_topics <- tidy(ap_lda, matrix = "beta")
 ap_topics
+
+doc_gamma <- tidy(ap_lda, matrix = "gamma")
+
 
 
 ap_top_terms <- ap_topics %>%
