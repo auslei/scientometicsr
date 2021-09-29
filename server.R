@@ -7,6 +7,7 @@ library(wordcloud2)
 
 source('./src/data_processing.R')
 source('./src/chart.R')
+source('./src/topic_models.R')
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
@@ -164,7 +165,7 @@ server <- function(input, output, session) {
         mutate(avg_cited = tc/n_pubs)
       
       
-      print(df_summary)
+      #print(df_summary)
       hc <- highchart() %>%
         hc_title(text = "Publication Trends") %>%
         hc_legend(enabled = T) %>%
@@ -226,7 +227,7 @@ server <- function(input, output, session) {
       
       progress$set(message = "Generating network data...", value = 0)
       
-      print(nrow(df_display()))
+      #print(nrow(df_display()))
       
       rv$g <- generate_net_work(df_display())
       g <- rv$g
@@ -277,7 +278,7 @@ server <- function(input, output, session) {
     if(isTruthy(df)){
       df %>% select(year, publication_type, title, cited_count, abstract, keywords, keywordsp) %>% arrange(year)
     }
-  }, options = list(pageLength = 10, info = FALSE, searching = FALSE))
+  }, options = list(pageLength = 10, info = FALSE))
   
   
   output$dt_citation <- renderDataTable({
@@ -332,14 +333,65 @@ server <- function(input, output, session) {
   })
   
   
-  observeEvent(input$btn_cluster, {
+  observeEvent(input$generate_tm, {
     if(isTruthy(df_display())){
-     
       # Create a Progress object
-     
+      progress <- shiny::Progress$new()
+      # Make sure it closes when we exit this reactive, even if there's an error
+      on.exit(progress$close())
       
+      progress$set(message = "Generating topic model, this may take some time...", value = 0)
+      
+      
+      k <- input$topcs
+      stem <- input$stem
+      ngram <- input$ngram
+      clean <- input$clean
+      
+      # Create a Progress object
+      rv$df_clean <- preprocess_text(df_display(), removeNonAlphabet = clean, stem = stem) #TODO: to implement customised stopwords
+      rv$dtm <- generate_dtm(rv$df_clean, ngram_min = 1, ngram_max = ngram) #TODO: to make it tweakable
+      
+      # create lda model
+      rv$lda_model <- lda_model(dtm = rv$dtm, k = k)
+      
+      rv$df_clean$topic <- rv$lda_model$theta %>% max.col()
     }
   })
   
+  # display frequent terms
+  output$tdm_stat <- renderDataTable({
+    if(isTruthy(rv$dtm)){
+      tf <- TermDocFreq(rv$dtm) %>% 
+              arrange(desc(term_freq))
+      
+      tf
+    }
+  }, options = list(pageLength = 10))
+  
+  
+  output$topic_plot <- renderPlot({
+    if(isTruthy(rv$lda_model)){
+      model <- rv$lda_model
+      term <- model$phi %>% as.matrix() %>%
+              t() %>% 
+              as.data.frame() %>% 
+              rownames_to_column("term") %>% gather(key = "topic", value = "phi", -term)
+      
+      top_terms <- term %>% 
+                    group_by(topic) %>%
+                    top_n(15, phi) %>% 
+                    ungroup() %>%
+                    arrange(topic, -phi)
+      
+      top_terms %>%
+        mutate(term = reorder_within(term, phi, topic)) %>%
+        ggplot(aes(term, phi, fill = factor(topic))) +
+        geom_col(show.legend = FALSE) +
+        facet_wrap(~ topic, scales = "free") +
+        coord_flip() +
+        scale_x_reordered()
+    }
+  })
 }
 

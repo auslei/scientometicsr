@@ -1,13 +1,9 @@
-library(topicmodels)
 library(tidytext)
 library(reshape2)
 library(ggplot2)
 library(dplyr)
-library(tm)
 library(SnowballC)
 library(tidyverse)
-library(quanteda)
-library(ldatuning)
 library(textmineR)
 
 # stopwords
@@ -48,14 +44,15 @@ preprocess_text <- function(df, sw = stopwords(), removeNonAlphabet = T,
               ungroup()
 }
 
-generate_dtm <- function(df_clean, ngram_min = 1, ngram_max = 2){
+
+generate_dtm <- function(df_clean, ngram_min = 1, ngram_max = 2, min_occ = 10, max_occ = 0.5){
   dtm <- CreateDtm(doc_vec = df_clean$text, 
                    doc_names = df_clean$doc_id, 
                    ngram_window = c(ngram_min, ngram_max),
                    verbose = TRUE)
 
-  dtm <- dtm[,colSums(dtm) > 2] # get rid of any terms with a count lower than 2 across all documents
-  dtm <- dtm[,colSums(dtm) <= nrow(dtm) * 0.8] # get rid of any terms that is contained in more than 80% of  all documents
+  dtm <- dtm[,colSums(dtm) > min_occ] # get rid of any terms with a count lower than 2 across all documents
+  dtm <- dtm[,colSums(dtm) <= nrow(dtm) * max_occ] # get rid of any terms that is contained in more than 80% of  all documents
   
   # get stats
   tf_mat <- TermDocFreq(dtm)
@@ -64,26 +61,26 @@ generate_dtm <- function(df_clean, ngram_min = 1, ngram_max = 2){
   tf_bigrams <- tf_mat[ stringr::str_detect(tf_mat$term, "_") , ]
   
   #
-  print(head(tf_mat[order(tf_mat$term_freq, decreasing = TRUE) , ], 10))
-  print(head(tf_bigrams[ order(tf_bigrams$term_freq, decreasing = TRUE) , ], 10))
+  #print(head(tf_mat[order(tf_mat$term_freq, decreasing = TRUE) , ], 10))
+  #print(head(tf_bigrams[ order(tf_bigrams$term_freq, decreasing = TRUE) , ], 10))
 
   return(dtm)  
 }
+
 
 lda_model <- function(dtm, k, iterations = 500){
   set.seed(12345)
   
   model <- FitLdaModel(dtm = dtm, 
-                       k = 20,
-                       iterations = 200, # I usually recommend at least 500 iterations or more
+                       k = k,
+                       iterations = iterations, # I usually recommend at least 500 iterations or more
                        burnin = 180,
                        alpha = 0.1,
                        beta = 0.05,
                        optimize_alpha = TRUE,
                        calc_likelihood = TRUE,
                        calc_coherence = TRUE,
-                       calc_r2 = TRUE,
-                       cpus = 2) 
+                       calc_r2 = TRUE) 
 
   #print(str(model)) # get an understanding of the structure
   
@@ -92,18 +89,30 @@ lda_model <- function(dtm, k, iterations = 500){
 
 
 
-
-# dtm to dense data frame
-dtm_to_dense_df <- function(tm){
+# find best k using LDA
+lda_model_optimise <- function(dtm, k_min = 1, k_max = 6, step = 1){
+  k_list <- seq(k_min, k_max, by = step)
   
-  ret <- tidy(dtm) %>% spread(term, count)
-  ret[is.na(ret)] = 0
-  
-  return(ret)
+  model_list <- TmParallelApply(X = k_list, FUN = function(k){
+    
+    m <- FitLdaModel(dtm = dtm, 
+                     k = k, 
+                     iterations = 200, 
+                     burnin = 180,
+                     alpha = 0.1,
+                     beta = colSums(dtm) / sum(dtm) * 100,
+                     optimize_alpha = TRUE,
+                     calc_likelihood = FALSE,
+                     calc_coherence = TRUE,
+                     calc_r2 = FALSE,
+                     cpus = 1)
+    m$k <- k
+    m$coherence <- CalcProbCoherence(phi = m$phi, dtm = dtm, M = 5)
+    m
+  }, export= ls()) 
+ 
+  model_list
 }
-
-
-#dfm <- quanteda::dfm(df$text, verbose = FALSE)
 
 # tokenise data
 generate_tokens <- function(df) {
@@ -116,36 +125,24 @@ generate_tokens <- function(df) {
     mutate(word = reorder(word, n)) 
 }
 
-#apply LDA
-backup <- function(){
-ap_lda <- LDA(dtm, k = 6, control = list(seed = 1234))
-ap_lda
-
-
-ap_topics <- tidy(ap_lda, matrix = "beta")
-ap_topics
-
-doc_gamma <- tidy(ap_lda, matrix = "gamma")
-
-
-
-ap_top_terms <- ap_topics %>%
-  group_by(topic) %>%
-  slice_max(beta, n = 10) %>% 
-  ungroup() %>%
-  arrange(topic, -beta)
-
-ap_top_terms %>%
-  mutate(term = reorder_within(term, beta, topic)) %>%
-  ggplot(aes(beta, term, fill = factor(topic))) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~ topic, scales = "free") +
-  scale_y_reordered()
-
-thefindFreqTerms(tm, 5)
-
-getTransformations()
-
-}
-
+# 
+# df <-process_data('./data/savedrecs.tsv')
+# df_clean <- preprocess_text(df)
+# 
+# dtm <- generate_dtm(df)
+#   
+# model <- lda_model(dtm)
+# 
+# ml <- lda_model_optimise(dtm)
+# 
+# 
+# # Get average coherence for each model
+# coherence_mat <- data.frame(k = sapply(ml, function(x) nrow(x$phi)), 
+#                             coherence = sapply(ml, function(x) mean(x$coherence)), 
+#                             stringsAsFactors = FALSE)
+# 
+# 
+# # Plot the result
+# # On larger (~1,000 or greater documents) corpora, you will usually get a clear peak
+# plot(coherence_mat, type = "o")
 

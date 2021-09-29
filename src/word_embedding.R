@@ -1,5 +1,3 @@
-
-
 library(word2vec)
 source('./src/data_processing.R')
 

@@ -78,14 +78,42 @@ ui <- dashboardPage(
              )
             
         ),
-        
+        tabPanel("Topic Model",
+            fluidRow(width = 12,
+                column(6,
+                      box("Inputs", 
+                        fluidRow(width = 6, 
+                                 sliderInput("topcs", "# of topics",  min = 2, max = 20, value = 5),
+                                 sliderInput("ngram", label = "# words (ngrams)" , min = 1, max = 4, value = 2),
+                                 checkboxInput("stem", "Stem Words", value = T),
+                                 checkboxInput("clean", "Keep only alphabets", value = T)
+                                 ),
+                        fluidRow(width = 6,
+                          actionButton("generate_tm", "Generate Topic Model", icon = icon("table"))
+                        )
+                      )
+                ),
+                column(6,
+                  box("Top Terms", width = "100%",
+                      div(dataTableOutput("tdm_stat"), style = "font-size:80%;")),
+                  
+                  
+                )
+            ),
+            fluidRow(width = 12,
+                     box("Top Terms in Topics", width = "100",
+                         plotOutput("topic_plot")
+                     )
+            )
+        ),
+
         tabPanel("Raw Data", 
                  fluidRow(width = 12,
                           column(width = 12,
                                  box(title = "Data Table" , width = "100%", div(dataTableOutput("data_table"), style = "font-size:80%;"))
                           )
-        )
                  )
+        )
     )
   )
 )
