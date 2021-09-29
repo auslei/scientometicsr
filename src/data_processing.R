@@ -10,9 +10,13 @@ process_data <- function(file_path) {
     select(authors = AU, title = TI, publication = SO, conference = CT, keywords = DE, 
            keywordsp = ID, abstract = AB, researcher_id = RI, digital_object_id = DI, cited_reference_id = CR,
            cited_count = NR, publisher = PU, year = PY, wos_category = WC,
-           research_area = SC, publication_type = PT)
+           research_area = SC, publication_type = PT) %>% 
+           filter(!is.na(abstract)) %>%
+           mutate(text = gsub("[^a-z]", " ", tolower(paste(abstract, keywords, keywordsp)))) # combine all text you can find
 }
 
+
+# this is to download web of science field definitions (for view purpose only)
 get_wos_field_tags <- function() {
   url = 'https://images.webofknowledge.com/images/help/WOS/hs_wos_fieldtags.html'
   df <- url %>% 
@@ -24,33 +28,35 @@ get_wos_field_tags <- function() {
 
 
 #wos <- get_wos_field_tags()
-separate_citataions <- function(df) {
+extract_doi <- function(df) {
   ret <- df %>% drop_na(digital_object_id) %>%
           separate_rows(cited_reference_id, sep = ";") %>%
-          mutate(has_doi = grepl("DOI", cited_reference_id), raw_cited_reference_id = cited_reference_id) %>%
-          mutate(cited_digital_object_id = str_extract(cited_reference_id, "DOI \\d+\\.\\d+\\/.+")) %>%
-          select(digital_object_id, cited_digital_object_id, cited_count, title, has_doi, raw_cited_reference_id) %>%
-          #drop_na(cited_digital_object_id) %>%
-          mutate(cited_digital_object_id = gsub("DOI ", "", cited_digital_object_id))
+          separate_rows(cited_reference_id, sep = ",") %>%
+          #mutate(has_doi = grepl("DOI", cited_reference_id), raw_cited_reference_id = cited_reference_id) %>%
+          #mutate(cited_digital_object_id = str_extract(cited_reference_id, "DOI \\d+\\.\\d+\\/.+")) %>%
+          mutate(cited_doi = str_extract(cited_reference_id, "10\\.\\w+\\/[^\\]]+"))  %>%
+          select(doi = digital_object_id, cited_doi, raw_cited_doi = cited_reference_id) %>%
+          drop_na(cited_doi) %>%
+          unique()
+          #mutate(cited_digital_object_id = gsub("DOI ", "", cited_digital_object_id))
 
   ret
 }
 
 
+# generate graph based on the data frame passed in
 generate_net_work <- function(df) {
-  
-  data <- df %>% 
-            filter(!is.na(df$digital_object_id)) %>% 
-            unique()
+  data <- df %>% filter(!is.na(df$digital_object_id))
+            
   
   e <- data %>% 
-           separate_citataions() %>%
-           filter(cited_digital_object_id %in% data$digital_object_id) %>%  # contained within selected articles (do not consider others)
-           select(from = digital_object_id, to = cited_digital_object_id)   # node to node strength can be considered as 1, unless cross reference
+    extract_doi() %>%
+           filter(cited_doi %in% data$digital_object_id) %>%  # contained within selected articles (do not consider others)
+           select(from = doi, to = cited_doi)   # node to node strength can be considered as 1, unless cross reference
   
   
-  v <- as.data.frame(list(id = unique(c(e$from, e$to)))) %>% #this won't be required if only consider articles in the list (can just use data table)
-           left_join(data %>% select(id = digital_object_id, title, cited_count)) %>%
+  v <- as.data.frame(list(doi = unique(c(e$from, e$to)))) %>% #this won't be required if only consider articles in the list (can just use data table)
+           left_join(data %>% select(doi = digital_object_id, title, cited_count) %>% unique()) %>%
            mutate(size = cited_count / 10, alias = row_number()) 
 
   #edges <- edges %>% mutate(edges, source = match(digital_object_id, nodes$digital_object_id), 
@@ -58,30 +64,8 @@ generate_net_work <- function(df) {
   
   g <- graph_from_data_frame(e, vertices = v) #directed graph
 
-  
-
-  return(g)
-}  
- 
-plot_net_work <- function(g) {
- 
-  #d3_g <- igraph_to_networkD3(g, members, "both")
-
-
-  #grp_summary <- nodes %>% 
-  #               group_by(group) %>% mutate(top_count = max(cited_count)) %>% 
-  #               filter(cited_count == top_count) 
-
-  
-  #forceNetwork(Links = edges, Nodes = nodes, Source = 'source',
-  #             Target = 'target', NodeID = 'title', Group = 'group',
-  #             zoom = TRUE, linkDistance = 200)
-  
-  #g <- as.undirected(g, mode = "collapse")
-  
-  wc <- walktrap.community(g)
-  # random walk performed to identify optimal clusters
-  print(paste(length(wc), "clusters found.."))
+  wc <- walktrap.community(g) # random walk performed to identify optimal clusters
+  print(paste(length(wc), "communities found.."))
   
   members <- membership(wc)
   
@@ -90,29 +74,17 @@ plot_net_work <- function(g) {
   qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
   col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
   
+  # addition vertex additional attributes
   V(g)$group = as.vector(members)
-  V(g)$color = as.vector(unlist(lapply(V(g)$group, function(x){col_vector[x]})))
-  V(g)$degree = as.vector(degree(g, mode = "out"))
+  V(g)$group_colour = as.vector(unlist(lapply(V(g)$group, function(x){col_vector[x]})))
+  V(g)$betweeness = centr_betw(g)$res
+  V(g)$degree= centr_degree(g, mode = "out")$res
+  V(g)$eigen = centr_eigen(g)$vector
+  V(g)$page_rank = page_rank(g)$vector %>% as.vector()
+  
+  return(g)
+}  
  
-  
-  plot(wc, g, 
-       vertex.label = ifelse(degree(g, mode = "out") >= 1, str_wrap(V(g)$alias, 25), NA),
-       edge.arrow.size=.2, edge.curved = T)
-       #vertex.label=NA,
-       #mark.groups = members,
-       #vertex.size=5,
-       #vertex.size = V(g)$cited_count,
-       #mark.border="black", 
-       #mark.col=col_vector,
-       #vertex.label.cex = 0.7,
-       #vertex.size = V(g)$degree,
-       #edge.arrow.size=.2, edge.curved = T, 
-       #asp = 0.5, #aspect ratio
-       #layout=layout.fruchterman.reingold)
-  
-}
-
-
 
 
 get_term_freq <- function(df){
@@ -134,9 +106,9 @@ get_term_freq <- function(df){
   
 }
 
-
-
 df <- process_data('./data/savedrecs.tsv')
-g <- generate_net_work(df)
+#g <- generate_net_work(df)
+#plot_net_work(g)
+#plot_d3_forced(g)
 
-plot_net_work(g)
+#df %>% filter(digital_object_id %in% V(g)$name) %>% select(keywords, keywordsp) %>% mutate(text = paste(tolower(keywords), tolower(keywordsp), sep = ";")) %>% separate_rows(text, sep = ';') %>% group_by(text) %>% summarise(n=n()) %>% arrange(desc(n)) %>% view()

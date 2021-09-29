@@ -4,12 +4,24 @@ library(treemap)
 library(viridisLite)
 library(wordcloud2)
 
+
 source('./src/data_processing.R')
+source('./src/chart.R')
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
   rv = reactiveValues()
+  
+  # Create a Progress object
+  progress <- shiny::Progress$new()
+  # Make sure it closes when we exit this reactive, even if there's an error
+  on.exit(progress$close())
+  
+  progress$set(message = "Loading default data...", value = 0)
+  
+  rv$data <- process_data("./data/savedrecs.tsv") %>%
+    drop_na(year)
   
   observeEvent(input$data_file, {
     
@@ -23,12 +35,15 @@ server <- function(input, output, session) {
     
     rv$data <- process_data(input$data_file$datapath) %>%
                drop_na(year)
-    
+  })
+
+  # generate global summarise
+  observeEvent(rv$data, {
     rv$publication_summary <- rv$data %>% 
-                              group_by(publication) %>% 
-                              summarise(n_pubs = n(), n_citations = sum(cited_count)) %>% 
-                              arrange(desc(n_citations)) %>% 
-                              mutate(cite_pub_ration = n_citations / n_pubs)
+      group_by(publication) %>% 
+      summarise(n_pubs = n(), n_citations = sum(cited_count)) %>% 
+      arrange(desc(n_citations)) %>% 
+      mutate(cite_pub_ration = n_citations / n_pubs)
     rv$publisher_summary <- rv$data %>% 
       group_by(publication) %>% 
       summarise(n_pubs = n(), n_citations = sum(cited_count)) %>% 
@@ -41,37 +56,74 @@ server <- function(input, output, session) {
       arrange(desc(n_citations)) %>% 
       mutate(cite_pub_ration = n_citations / n_pubs)
   })
-
-  # renders the ui
-  output$filters <- renderUI({
-    if(isTruthy(ui_filter()))
-      ui_filter()
+  
+  
+  ## Information Boxes
+  infoboxes <- reactive({
+    
+    if(isTruthy(df_display())){
+      df_summary <- df_display() %>% 
+            summarise(n = n(), total_cited = sum(cited_count), num_publications = n_distinct(publication),
+            num_publishers = n_distinct(publisher)) %>% 
+        mutate(average_cited = round(total_cited / n, 0))
+      
+      total_articles <- valueBox(df_summary[['n']], paste0("# Articles (", df_summary[['num_publications']], " publications)"), color = "navy", icon = icon("file", lib = "glyphicon"), width = 3)
+      average_citations <- valueBox(df_summary[['average_cited']], "Avearge Citation", color = "teal",  icon = icon("record", lib = "glyphicon"), width = 3)
+      if(isTruthy(rv$g)){
+        network <- valueBox(length(V(rv$g)), paste0("Connected Articles (", length(E(rv$g)), " connections)"), color = "green",  icon = icon("asterisk", lib = "glyphicon"), width = 3)
+      }
+      
+      n_publishers <- valueBox(df_summary[['num_publishers']], "Publishers", color = "orange", icon = icon("folder-open", lib = "glyphicon"), width = 3)
+      
+      tagList(
+        total_articles, average_citations, network, n_publishers
+      )
     }
-  )
+    
+  })
+  
+  output$infoboxes <- renderUI({
+    infoboxes() 
+  })
   
   ui_filter <- reactive({
     
     if(isTruthy(rv$data)){
       
       publications <-  rv$publication_summary$publication
-      publishers <- rv$publisher_summary$publisher
       research_areas <- rv$research_area_summary$research_area
       year_min <-  min(rv$data$year)
       year_max <- max(rv$data$year)
-      publication_types <- df$publication_type %>% unique() %>% sort()
-      
+      publication_types <- rv$data$publication_type %>% unique() %>% sort()
       
       tagList(
-        selectInput(inputId = "publication_types", label = "Publication Type", choices = list(Journal = "J", Conference = "C", Others = "S"), 
-                    selected = publication_types, multiple = T),
+        checkboxGroupInput(inputId = "publication_types", label = "Publication Type", choices = list(Journal = "J", Conference = "C", Others = "S"), inline = T),
         selectInput(inputId = "research_areas", label = "Research area", choices = research_areas, multiple = T, selected = NULL),
         selectInput(inputId = "publications", label = "Publication", choices = publications, multiple = T, selected = NULL),
-        selectInput(inputId = "publishers", label = "Publisher", choices = publishers, multiple = T, selected = NULL),
         sliderInput(inputId = "year", label = 'Year', min = year_min, max = year_max, value = c(year_min, year_max))
       )
     }
   })
   
+  
+  # renders the ui
+  output$filters <- renderUI({
+    if(isTruthy(ui_filter()))
+      ui_filter()
+  }
+  )
+  
+  
+  # renders network filters
+  output$network_filter <- renderUI({
+    if(isTruthy(rv$g)){
+      groups = V(rv$g)$group %>% unique()
+      selectInput(inputId = "communities", label = "Communities", choices = groups, multiple = T, selected = NULL)
+    }
+  })
+  
+  
+  # filter data based on navbar filters for display
   df_display <- reactive({
     
     if(isTruthy(rv$data)) {
@@ -102,12 +154,6 @@ server <- function(input, output, session) {
     }
   })
   
-  output$data_table <- renderDataTable({
-    df <- df_display()
-    if(isTruthy(df)){
-        df %>% select(year, publication_type, title, cited_count, abstract, keywords, keywordsp) %>% arrange(year)
-    }
-  })
   
   # display a trend chart
   output$trend_chart<- renderHighchart({
@@ -155,7 +201,7 @@ server <- function(input, output, session) {
   })
   
   
-  #wordcloud
+  #wordcloud for filtered data
   output$wordcloud <- renderWordcloud2({
     if(isTruthy(df_display())){
       df <- df_display()
@@ -171,5 +217,129 @@ server <- function(input, output, session) {
       wordcloud2(data = bigrams, minSize = 10)
     }
   })
+  
+  observeEvent(df_display(), {
+    if(isTruthy(df_display()) && nrow(df_display())>0){
+      progress <- shiny::Progress$new()
+      # Make sure it closes when we exit this reactive, even if there's an error
+      on.exit(progress$close())
+      
+      progress$set(message = "Generating network data...", value = 0)
+      
+      print(nrow(df_display()))
+      
+      rv$g <- generate_net_work(df_display())
+      g <- rv$g
+      
+      # data frame representing the vertices
+      rv$g_df <- as.data.frame(list(
+                                    alias = V(rv$g)$alias,
+                                    vertex = V(rv$g)$name, 
+                                    title = V(rv$g)$title, 
+                                    citation_count = V(rv$g)$cited_count,
+                                    community = V(rv$g)$group, 
+                                    degree = as.vector(degree(rv$g, mode ="out")),
+                                    betweenness = centr_betw(rv$g)$res,
+                                    eigen = centr_eigen(rv$g)$vector,
+                                    page_rank = page_rank(rv$g)$vector %>% as.vector()
+                                    ))
+      
+    }
+  })
+  
+  
+  #networkplot
+  output$network <- renderPlot({
+    if(isTruthy(rv$g)){
+      
+      g <- rv$g
+      
+      # if selection is made, only plot a sub-graph
+      if(isTruthy(input$communities)){
+        g <- induced.subgraph(g, V(g)[V(g)$group %in% input$communities])
+      }
+      
+      # generate networks
+        
+      plot_net_work(g)
+    }
+    
+  })
+  
+  ##########################################
+  #               DATA TABLES              #
+  ##########################################
+  
+  
+  
+  output$data_table <- renderDataTable({
+    df <- df_display()
+    if(isTruthy(df)){
+      df %>% select(year, publication_type, title, cited_count, abstract, keywords, keywordsp) %>% arrange(year)
+    }
+  }, options = list(pageLength = 10, info = FALSE, searching = FALSE))
+  
+  
+  output$dt_citation <- renderDataTable({
+    if(isTruthy(rv$g_df)){
+      df <- rv$g_df %>% mutate(vertex = paste0("<a href = 'https://www.doi.org/", vertex, "'>", vertex, "</a>"))
+      
+      if(isTruthy(input$communities)){
+        df <- df %>% filter(community %in% input$communities)
+      }
+      
+      df
+    }
+    
+  }, escape = FALSE, options = list(dom = 't'))
+  
+  
+  # display a citation summary table
+  output$dt_citation_summary <- renderDataTable({
+    if(isTruthy(rv$g_df)){
+      df <- rv$g_df
+      
+      df %>% group_by(community) %>%
+        summarise(num_articles = n(), total_citations = sum(citation_count)) %>%
+        arrange(desc(num_articles))
+      
+    }
+  }, options = list(dom = 't'))
+  
+  
+  # render the wordcloud for selected communities
+  output$network_wc <- renderWordcloud2({
+    if(isTruthy(rv$g_df)){
+      df <- rv$g_df
+      
+      if(isTruthy(input$communities)){
+        df <- df %>% filter(community %in% input$communities)
+      }
+      
+      df <- rv$data %>% filter(digital_object_id %in% df$vertex) %>% 
+                select(keywords, keywordsp) %>% 
+                mutate(text = paste(tolower(keywords), tolower(keywordsp), sep = ";")) %>% 
+                separate_rows(text, sep = ';') %>% 
+                mutate(text = gsub("[^a-z]", " ", trimws(text))) %>%
+                group_by(text) %>% summarise(n=n()) %>% 
+                arrange(desc(n))
+      
+      
+      wordcloud2(df)
+    }
+    
+    
+  })
+  
+  
+  observeEvent(input$btn_cluster, {
+    if(isTruthy(df_display())){
+     
+      # Create a Progress object
+     
+      
+    }
+  })
+  
 }
 
