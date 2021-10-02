@@ -1,4 +1,7 @@
-
+library(highcharter)
+library(igraph)
+library(ggplot2)
+library(ggraph)
 
 # plot network using default plot function
 plot_net_work <- function(g) {
@@ -53,3 +56,19 @@ plot_d3_forced <- function(g){
                zoom = TRUE, fontSize = 12, arrows = F)
   
 }
+
+
+plot_ggraph <- function(g){
+  
+  ggraph(g, layout = "fr") +
+    #geom_edge_elbow() +
+    geom_edge_arc(strength = 0.2, width = 0.5, alpha = 0.15) + 
+    geom_node_point(aes(color = factor(group), size = size)) + 
+    geom_node_text(aes(label = alias, size = degree), repel = TRUE) +
+    theme_void() +
+    
+    theme(legend.position = "none") 
+}
+
+
+

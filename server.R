@@ -24,6 +24,9 @@ server <- function(input, output, session) {
   rv$data <- process_data("./data/savedrecs.tsv") %>%
     drop_na(year)
   
+  
+ 
+  
   observeEvent(input$data_file, {
     
     # Create a Progress object
@@ -68,10 +71,13 @@ server <- function(input, output, session) {
             num_publishers = n_distinct(publisher)) %>% 
         mutate(average_cited = round(total_cited / n, 0))
       
-      total_articles <- valueBox(df_summary[['n']], paste0("# Articles (", df_summary[['num_publications']], " publications)"), color = "navy", icon = icon("file", lib = "glyphicon"), width = 3)
+      total_articles <- valueBox(df_summary[['n']], paste0("# Articles (", df_summary[['num_publications']], " journals/conferences)"), color = "navy", icon = icon("file", lib = "glyphicon"), width = 3)
       average_citations <- valueBox(df_summary[['average_cited']], "Avearge Citation", color = "teal",  icon = icon("record", lib = "glyphicon"), width = 3)
+      
       if(isTruthy(rv$g)){
         network <- valueBox(length(V(rv$g)), paste0("Connected Articles (", length(E(rv$g)), " connections)"), color = "green",  icon = icon("asterisk", lib = "glyphicon"), width = 3)
+      } else {
+        network <- NA
       }
       
       n_publishers <- valueBox(df_summary[['num_publishers']], "Publishers", color = "orange", icon = icon("folder-open", lib = "glyphicon"), width = 3)
@@ -98,9 +104,9 @@ server <- function(input, output, session) {
       publication_types <- rv$data$publication_type %>% unique() %>% sort()
       
       tagList(
-        checkboxGroupInput(inputId = "publication_types", label = "Publication Type", choices = list(Journal = "J", Conference = "C", Others = "S"), inline = T),
+        checkboxGroupInput(inputId = "publication_types", label = "Publication Type", choices = list(Journal = "J", Conference = "C", Others = "S")),
         selectInput(inputId = "research_areas", label = "Research area", choices = research_areas, multiple = T, selected = NULL),
-        selectInput(inputId = "publications", label = "Publication", choices = publications, multiple = T, selected = NULL),
+        selectInput(inputId = "publications", label = "Journal/Conference", choices = publications, multiple = T, selected = NULL),
         sliderInput(inputId = "year", label = 'Year', min = year_min, max = year_max, value = c(year_min, year_max))
       )
     }
@@ -250,21 +256,34 @@ server <- function(input, output, session) {
   
   
   #networkplot
+  # output$network <- renderPlot({
+  #   if(isTruthy(rv$g)){
+  #     
+  #     g <- rv$g
+  #     
+  #     # if selection is made, only plot a sub-graph
+  #     if(isTruthy(input$communities)){
+  #       g <- induced.subgraph(g, V(g)[V(g)$group %in% input$communities])
+  #     }
+  #     
+  #     # generate networks
+  #       
+  #     plot_net_work(g)
+  #   }
+  #   
+  # })
+  
+  #
   output$network <- renderPlot({
-    if(isTruthy(rv$g)){
-      
-      g <- rv$g
-      
-      # if selection is made, only plot a sub-graph
-      if(isTruthy(input$communities)){
-        g <- induced.subgraph(g, V(g)[V(g)$group %in% input$communities])
-      }
-      
-      # generate networks
-        
-      plot_net_work(g)
+    g <- rv$g
+    
+    # if selection is made, only plot a sub-graph
+    if(isTruthy(input$communities)){
+      g <- induced.subgraph(g, V(g)[V(g)$group %in% input$communities])
     }
     
+    # generate networks
+    plot_ggraph(g)
   })
   
   ##########################################
@@ -347,9 +366,13 @@ server <- function(input, output, session) {
       stem <- input$stem
       ngram <- input$ngram
       clean <- input$clean
+      sw <- stop_words$word
+      if(isTruthy(input$stopwords)){
+        sw <- c(sw, str_split(tolower(input$stopwords), "[^a-z]")[[1]])
+      }
       
       # Create a Progress object
-      rv$df_clean <- preprocess_text(df_display(), removeNonAlphabet = clean, stem = stem) #TODO: to implement customised stopwords
+      rv$df_clean <- preprocess_text(df_display(), sw = sw,  removeNonAlphabet = clean, stem = stem) #TODO: to implement customised stopwords
       rv$dtm <- generate_dtm(rv$df_clean, ngram_min = 1, ngram_max = ngram) #TODO: to make it tweakable
       
       # create lda model

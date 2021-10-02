@@ -86,7 +86,6 @@ generate_net_work <- function(df) {
 }  
  
 
-
 get_term_freq <- function(df){
   bigrams <- df %>% 
     unnest_tokens(word, abstract) %>% 
@@ -106,7 +105,7 @@ get_term_freq <- function(df){
   
 }
 
-df <- process_data('./data/savedrecs.tsv')
+#df <- process_data('./data/savedrecs.tsv')
 #g <- generate_net_work(df)
 #plot_net_work(g)
 #plot_d3_forced(g)

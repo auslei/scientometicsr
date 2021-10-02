@@ -10,11 +10,11 @@ library(textmineR)
 customer_sw <- c('automated', 'automation', 'building', 'construction', 'code', 'compliance',
                  'machine', 'learning', 'na')
 
-sw <- c(stopwords(), customer_sw)
+sw <- c(stop_words$word, customer_sw)
 
 
 # pre-process text for modelling
-preprocess_text <- function(df, sw = stopwords(), removeNonAlphabet = T,
+preprocess_text <- function(df, sw = stop_words$word, removeNonAlphabet = T,
                                 min_word_length = 3, 
                                 stem = T){
   

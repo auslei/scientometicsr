@@ -48,7 +48,7 @@ ui <- dashboardPage(
               box(title = "Trending", width = "100%", highchartOutput("trend_chart") %>% withSpinner(color="#0dc5c1"))
             ),
             column(width = 6,
-              box(title = "Publications", width = "100%", highchartOutput("treemap") %>% withSpinner(color="#0dc5c1"))
+              box(title = "Journals/Conferences", width = "100%", highchartOutput("treemap") %>% withSpinner(color="#0dc5c1"))
             )
           ),
           fluidRow(
@@ -64,9 +64,12 @@ ui <- dashboardPage(
                   column(6,
                     box("Article Network", width = "100%", 
                         uiOutput("network_filter"),
-                        plotOutput("network") %>% withSpinner(color="#0dc5c1"),
+                        plotOutput("network") %>% withSpinner(color="#0dc5c1")
+                    ),
+                    box("Word Cloud (community)", width = "100%",
                         wordcloud2Output("network_wc") %>% withSpinner(color="#0dc5c1")
-                    )),
+                        )
+                    ),
                   column(6,
                     box("Summary", width = "100%", div(dataTableOutput("dt_citation_summary"), style = "font-size:80%;"))
                   )
@@ -86,7 +89,8 @@ ui <- dashboardPage(
                                  sliderInput("topcs", "# of topics",  min = 2, max = 20, value = 5),
                                  sliderInput("ngram", label = "# words (ngrams)" , min = 1, max = 4, value = 2),
                                  checkboxInput("stem", "Stem Words", value = T),
-                                 checkboxInput("clean", "Keep only alphabets", value = T)
+                                 checkboxInput("clean", "Keep only alphabets", value = T),
+                                 textInput("stopwords", "Stop Words", "Enter words to exclude")
                                  ),
                         fluidRow(width = 6,
                           actionButton("generate_tm", "Generate Topic Model", icon = icon("table"))

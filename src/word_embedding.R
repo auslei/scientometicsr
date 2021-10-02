@@ -1,5 +1,7 @@
 library(word2vec)
 source('./src/data_processing.R')
+library(parallel)
+
 
 set.seed(1234)
 
@@ -7,10 +9,17 @@ set.seed(1234)
 df <- process_data('./data/savedrecs.tsv')
 df <- df %>% mutate(text = tolower(abstract))
 
-model <- word2vec(x = df$text, type = "cbow", dim = 25, iter = 20)
+model <- word2vec(x = df$text, type = "cbow", dim = 50, iter = 20, threads = detectCores())
 
 embedding <- as.matrix(model)
-embedding
+embedding.pca <- prcomp(embedding)
+
+pcs <- embedding.pca$x %>% as.data.frame() %>% head(50)
+
+ggplot(pcs, aes(x=PC1, y=PC2)) +
+  geom_text(label=rownames(pcs)) +
+  geom_point(aes(size=5), alpha = 0.5, colour = 'blue') +
+  theme(legend.position = "none") 
 
 
 emb <- predict(model, c("compliance", "regulatory", "bim"), type = "embedding")
