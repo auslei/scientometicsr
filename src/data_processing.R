@@ -12,7 +12,7 @@ process_data <- function(file_path) {
            cited_count = NR, publisher = PU, year = PY, wos_category = WC,
            research_area = SC, publication_type = PT) %>% 
            filter(!is.na(abstract)) %>%
-           mutate(text = gsub("[^a-z]", " ", tolower(paste(abstract, keywords, keywordsp)))) # combine all text you can find
+           mutate(text = gsub("[^a-z]", " ", tolower(paste(abstract, keywords, keywordsp))), doc_id = row_number()) # combine all text you can find
 }
 
 
