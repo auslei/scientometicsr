@@ -116,13 +116,52 @@ ggraph(wordnetwork, layout = "fr") +
 ## Text rank
 library(textrank)
 stats4 <- textrank_keywords(df_annote$lemma, 
-                           relevant = x$upos %in% c("NOUN", "ADJ"), 
+                           relevant = df_annote$upos %in% c("NOUN"), 
                            ngram_max = 8, sep = " ")
-stats4 <- subset(stats$keywords, ngram > 1 & freq >= 5)
+keywords <- subset(stats4$keywords, ngram > 1 & freq >= 5)
 
 library(wordcloud)
-wordcloud(words = stats$keyword, freq = stats$freq)
+wordcloud(words = keywords$keyword, freq = keywords$freq)
 
 
 
 #RAKE (Rapid Automatic Keyword)
+stats <- keywords_rake(x = df_annote, 
+                      term = "token", group = c("doc_id"),
+                      relevant = df_annote$upos %in% c("NOUN", "ADJ"),
+                      ngram_max = 4)
+
+head(subset(stats, freq > 3))
+
+
+# phrases
+
+# Next option is to extract phrases. These are defined as a sequence of Parts 
+# of Speech Tags. Common type of phrases are noun phrases or verb phrases. 
+# How does this work? Parts of Speech tags are recoded to one of the following 
+# one-letters: (A: adjective, C: coordinating conjuction, D: determiner, 
+# M: modifier of verb, N: noun or proper noun, P: preposition). Next you can 
+#define a regular expression to indicate a sequence of parts of speech tags 
+#which you want to extract from the text.
+
+## Simple noun phrases (a adjective+noun, pre/postposition, optional determiner and another adjective+noun)
+df_annote$phrase_tag <- as_phrasemachine(df_annote$upos, type = "upos")
+stats <- keywords_phrases(x = df_annote$phrase_tag, term = df_annote$token, 
+                          pattern = "(A|N)+N(P+D*(A|N)*N)*", 
+                          is_regex = TRUE, ngram_max = 4, detailed = FALSE)
+head(subset(stats, ngram > 2))
+
+
+#Option 6: Use dependency parsing output to get the nominal subject and the adjective of it
+stats6 <- merge(df_annote, df_annote, 
+               by.x = c("doc_id", "head_token_id"),
+               by.y = c("doc_id", "token_id"),
+               all.x = TRUE, all.y = FALSE, 
+               suffixes = c("", "_parent"), sort = FALSE)
+stats6 <- subset(stats6, dep_rel %in% "nsubj" & upos %in% c("NOUN") & upos_parent %in% c("ADJ"))
+stats6$term <- paste(stats6$lemma_parent, stats6$lemma, sep = " ")
+stats6 <- txt_freq(stats6$term)
+library(wordcloud)
+wordcloud(words = stats6$key, freq = stats6$freq, min.freq = 3, max.words = 100,
+          random.order = FALSE, colors = brewer.pal(6, "Dark2"))
+
