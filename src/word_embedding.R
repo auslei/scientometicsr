@@ -9,7 +9,7 @@ set.seed(1234)
 df <- process_data('./data/savedrecs.tsv')
 df <- df %>% mutate(text = tolower(abstract))
 
-model <- word2vec(x = df$text, type = "cbow", dim = 50, iter = 20, threads = detectCores())
+model <- word2vec(x = df$text, type = "cbow", dim = 300, iter = 20, threads = detectCores())
 
 embedding <- as.matrix(model)
 embedding.pca <- prcomp(embedding)
@@ -22,9 +22,9 @@ ggplot(pcs, aes(x=PC1, y=PC2)) +
   theme(legend.position = "none") 
 
 
-emb <- predict(model, c("compliance", "regulatory", "bim"), type = "embedding")
+emb <- predict(model, c("the"), type = "embedding")
 emb
-lookslike <- predict(model, c("compliance", "regulatory", "bim"), type = "nearest", top_n = 5)
+lookslike <- predict(model, c("code"), type = "nearest", top_n = 5)
 lookslike
 
 
