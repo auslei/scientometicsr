@@ -17,7 +17,7 @@ ui <- dashboardPage(
   sidebar = dashboardSidebar(
        
     uiOutput('filters'),
-    fileInput(inputId= 'data_file', label = "Upload Data File (WoS)", multiple = FALSE,
+    fileInput(inputId= 'data_file', label = "Upload Data File (WoS)", multiple = TRUE,
               accept = c("txt/tsv", ".txt", '.csv'))
     
     

@@ -3,6 +3,9 @@ library(rvest)
 library(tidytext)
 library(igraph)
 library(networkD3)
+library(tools)
+library(SnowballC)
+
 
 # process WoS (Web Of Science) data
 process_data <- function(file_path) {
@@ -13,6 +16,31 @@ process_data <- function(file_path) {
            research_area = SC, publication_type = PT) %>% 
            filter(!is.na(abstract)) %>%
            mutate(text = gsub("[^a-z]", " ", tolower(paste(abstract, keywords, keywordsp))), doc_id = row_number()) # combine all text you can find
+}
+
+# process data from mulitple files
+#' @param file_path the directory where files are situated
+#' @param file_ext the file extension of the data files
+#' @return data frame
+load_data <- function(file_path, file_ext = 'txt'){
+  df <- NULL
+  if(dir.exists(file_path)){
+    for(f in list.files(file_path)){
+      full_path = file.path(file_path, f)
+      if(file_test("-f", full_path) && file_ext(full_path) == file_ext){
+        if(!is.null(df)){
+          print(paste0("loading file: ", full_path))
+          t <- process_data(full_path)
+          #print(t %>% head())
+          df <- df %>% bind_rows(t)
+        }
+        else
+          df <- process_data(full_path)
+      }
+    }
+  }
+  
+  return(df)
 }
 
 
@@ -105,9 +133,26 @@ get_term_freq <- function(df){
   
 }
 
-#df <- process_data('./data/savedrecs.tsv')
-#g <- generate_net_work(df)
-#plot_net_work(g)
-#plot_d3_forced(g)
+# remove stopwords and stem text document
+#' @param df dataframe containing text (expected doc_id and text column to exist)
+#' @return df_cleansed, data frame containing doc_id and cleansed text
+cleanse_text <- function(df){
+  df_cleansed <- df %>% 
+    unnest_tokens(word, text) %>% 
+    anti_join(get_stopwords()) %>%
+    mutate(word = wordStem(word)) %>%
+    group_by(doc_id) %>%
+    summarise(text_cleansed = paste0(word, collapse = " ")) 
+  
+  return(df_cleansed)
+}
 
-#df %>% filter(digital_object_id %in% V(g)$name) %>% select(keywords, keywordsp) %>% mutate(text = paste(tolower(keywords), tolower(keywordsp), sep = ";")) %>% separate_rows(text, sep = ';') %>% group_by(text) %>% summarise(n=n()) %>% arrange(desc(n)) %>% view()
+# search data frame for data
+#' @param df dataframe for the search to be applied 
+#' @param search_text string searching for a specific text (this will be converted into regexp)
+#' @return filtered data frame
+search <- function(df, search_text){
+  words <- strsplit(search_text, " ")[[1]] %>% wordStem() %>% paste(collapse = '|')
+  df %>% filter(grepl(words, text_cleansed))
+}
+

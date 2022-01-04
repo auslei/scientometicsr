@@ -4,7 +4,6 @@ library(treemap)
 library(viridisLite)
 library(wordcloud2)
 
-
 source('./src/data_processing.R')
 source('./src/chart.R')
 source('./src/topic_models.R')
@@ -21,12 +20,10 @@ server <- function(input, output, session) {
   
   progress$set(message = "Loading default data...", value = 0)
   
-  rv$data <- process_data("./data/savedrecs.tsv") %>%
+  rv$data <- load_data("~/Downloads") %>%  #process_data("./data/savedrecs.tsv") %>%
     drop_na(year)
   
-  
- 
-  
+
   observeEvent(input$data_file, {
     
     # Create a Progress object
@@ -48,6 +45,7 @@ server <- function(input, output, session) {
       summarise(n_pubs = n(), n_citations = sum(cited_count)) %>% 
       arrange(desc(n_citations)) %>% 
       mutate(cite_pub_ration = n_citations / n_pubs)
+    
     rv$publisher_summary <- rv$data %>% 
       group_by(publication) %>% 
       summarise(n_pubs = n(), n_citations = sum(cited_count)) %>% 
@@ -166,35 +164,7 @@ server <- function(input, output, session) {
   output$trend_chart<- renderHighchart({
     if(isTruthy(df_display())){
       df <- df_display()
-      df_summary <- df %>% group_by(year) %>% 
-        summarise(n_pubs = n(), tc = sum(cited_count)) %>%
-        mutate(avg_cited = tc/n_pubs)
-      
-      
-      #print(df_summary)
-      hc <- highchart() %>%
-        hc_title(text = "Publication Trends") %>%
-        hc_legend(enabled = T) %>%
-        #hc_xAxis(title = "Year", categories = df_summary$year, crosshair = T) %>%
-        hc_yAxis_multiples(list(title = list(text = "# Publications"), opposite=FALSE, min = 0),
-                           list(title = list(text = "Total Citations"), opposite=TRUE, min = 0)) %>% 
-        
-        #hc_add_series(data = df_summary, mapping = hcaes(x = year, y = n_pubs), name = "# Publications", type = 'column', color = "#FF9500") %>% #,
-                      #tooltip = list(pointFormat = "<span style='color:{FF9500}'>\u25CF</span> # Publications {point.n_pubs} </span>")) %>%
-        hc_add_series(data = df_summary, mapping = hcaes(x = year, y = avg_cited), name = "Average citations", type = 'line', color = "grey", yAxis = 1) %>% #,
-                      #tooltip = list(pointFormat = "<span style='color:{#2670FF}'>\u25CF</span> Total Citations {point.tc} </span>")) %>%
-        
-        hc_add_series(data = df_summary, mapping = hcaes(x = year, y = n_pubs, size = tc), 
-                      name = "#puiblications", type = 'scatter', color = "lightblue", alpha = 0.5) %>% #,
-                     # tooltip = list(pointFormat = "<span style='color:{#00FF2A}'>\u25CF</span> Avg Citations {point.avg_cited}"), yAxis = 1) %>%
-        #hc_add_series(name = "# Publications", type = 'column', data = df_summary$n_pubs, color = 'blue', yAxis = 0) %>%
-        #hc_add_series(name = "Average Citations", type = 'line', data = df_summary$avg_cited, color = 'orange', yAxis = 1) %>%
-        #hc_add_series(name = "Total Citations", type = 'line', data = df_summary$avg_cited, color = 'orange', yAxis = 1) %>%
-        hc_tooltip(crosshairs = T, shared = TRUE, headerFormat = "<b>Year {point.key}</b><br>") %>%
-        hc_add_theme(hc_theme_tufte())
-      
-      hc
-      
+      plot_publication_trend(df)
     }
   })
   

@@ -1,18 +1,43 @@
 library(word2vec)
 source('./src/data_processing.R')
 library(parallel)
+library(tidytext)
+library(stringr)
+
+# training a w2v model
+train_w2v <- function(df, dimension = 300, iter = 20, type = "cbow") {
+  model <- word2vec(x = df$text, type = type, dim = dimension, iter = iter, threads = detectCores())
+  return(model)
+}
+
+
+# to process words into unigram, remove stopwords, stem/lemm
+clean_text <- function(df){
+  words <- df %>% 
+    unnest_tokens(word, text) %>% 
+    anti_join(stop_words) %>%
+    group_by(doc_id) %>%
+    summarise(text = str_c(word, collapse = " "), .groups = "drop")
+
+  return(words)
+}
+
 
 
 set.seed(1234)
 
 
-df <- process_data('./data/savedrecs.tsv')
-df <- df %>% mutate(text = tolower(abstract))
+df <- process_data('~/Downloads/savedrecs-4.txt')
+df <- df %>% mutate(text = tolower(abstract)) %>% select(doc_id, text) %>% clean_text
 
-model <- word2vec(x = df$text, type = "cbow", dim = 300, iter = 20, threads = detectCores())
+df %>% head()
 
-embedding <- as.matrix(model)
-embedding.pca <- prcomp(embedding)
+
+model <- train_w2v(df)
+embedding = as.matrix(model)
+
+
+embedding.pca <- prcomp(embedding, center = T, scale. = T, rank. = 2)
 
 pcs <- embedding.pca$x %>% as.data.frame() %>% head(50)
 

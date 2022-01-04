@@ -59,7 +59,6 @@ plot_d3_forced <- function(g){
 
 
 plot_ggraph <- function(g){
-  
   ggraph(g, layout = "fr") +
     #geom_edge_elbow() +
     geom_edge_arc(strength = 0.2, width = 0.5, alpha = 0.15) + 
@@ -70,5 +69,37 @@ plot_ggraph <- function(g){
     theme(legend.position = "none") 
 }
 
+#' param 
+plot_publication_trend <- function(df){
+  df_summary <- df %>% group_by(year) %>% 
+    summarise(n_pubs = n(), tc = sum(cited_count)) %>%
+    mutate(avg_cited = tc/n_pubs)
+  
+  
+  #print(df_summary)
+  hc <- highchart() %>%
+    hc_title(text = "Publication Trends") %>%
+    hc_legend(enabled = T) %>%
+    hc_yAxis_multiples(list(title = list(text = "Number of literature"), opposite=FALSE, min = 0),
+                       list(title = list(text = "Number of citations"), opposite=TRUE, min = 0)) %>% 
+    
+    #hc_add_series(data = df_summary, mapping = hcaes(x = year, y = n_pubs), name = "# Publications", type = 'column', color = "#FF9500") %>% #,
+    #tooltip = list(pointFormat = "<span style='color:{FF9500}'>\u25CF</span> # Publications {point.n_pubs} </span>")) %>%
+    hc_add_series(data = df_summary, mapping = hcaes(x = year, y = avg_cited), 
+                  name = "Average citations", type = 'spline', color = "grey", yAxis = 1) %>% #,
+    #tooltip = list(pointFormat = "<span style='color:{#2670FF}'>\u25CF</span> Total Citations {point.tc} </span>")) %>%
+    
+    hc_add_series(data = df_summary, mapping = hcaes(x = year, y = n_pubs, size = tc), 
+                  name = "#puiblications", type = 'scatter', color = "lightblue", alpha = 0.5) %>% #,
+    # tooltip = list(pointFormat = "<span style='color:{#00FF2A}'>\u25CF</span> Avg Citations {point.avg_cited}"), yAxis = 1) %>%
+    #hc_add_series(name = "# Publications", type = 'column', data = df_summary$n_pubs, color = 'blue', yAxis = 0) %>%
+    #hc_add_series(name = "Average Citations", type = 'line', data = df_summary$avg_cited, color = 'orange', yAxis = 1) %>%
+    #hc_add_series(name = "Total Citations", type = 'line', data = df_summary$avg_cited, color = 'orange', yAxis = 1) %>%
+    hc_tooltip(crosshairs = T, shared = TRUE, headerFormat = "<b>Year {point.key}</b><br>") %>%
+    hc_add_theme(hc_theme_tufte())
+  
+  hc
+}
 
+#plot_publication_trend(df)
 
