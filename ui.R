@@ -5,24 +5,22 @@ library(highcharter)
 library(shinycssloaders)
 library(dashboardthemes)
 
-source('./src/ui_elements/ui_components.R')
-source('./src/ui_elements/dynamic_ui_components.R')
+source('./src/ui/ui_components.R')
+source('./src/ui/dynamic_ui_components.R')
 source('./server.R')
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(
   
-  title = "Scientometic Data Analyser",
+  title = "ScientometicR",
   # Application title
-  header = dashboardHeader(title = "Scientometic Data Analyser"),
+  header = dashboardHeader(title = "ScientometicR"),
   
   # Sidebar with a slider input for number of bins 
   sidebar = dashboardSidebar(
     uiOutput('navbar_filter'),
     fileInput(inputId= 'data_file', label = "Upload Data File (WoS)", multiple = TRUE,
               accept = c("txt/tsv", ".txt", '.csv'))
-    
-    
   ),
   
   body = dashboardBody(
@@ -36,35 +34,13 @@ ui <- dashboardPage(
     ),
     
     # Show a plot of the generated distribution
-    
     fluidRow(width = 12,
       uiOutput("infoboxes")
     ),
     
     tabBox(title = "", width = 12, 
         ui_gen_status_panel(),
-        tabPanel("Co-citation Analysis", 
-             fluidRow(width = 12, 
-                  column(6,
-                    box("Article Network", width = "100%", 
-                        uiOutput("network_filter"),
-                        plotOutput("network") %>% withSpinner(color="#0dc5c1")
-                    ),
-                    box("Word Cloud (community)", width = "100%",
-                        wordcloud2Output("network_wc") %>% withSpinner(color="#0dc5c1")
-                        )
-                    ),
-                  column(6,
-                    box("Summary", width = "100%", div(dataTableOutput("dt_citation_summary"), style = "font-size:80%;"))
-                  )
-             ),
-             fluidRow(width = 12,
-                  column(width = 12,
-                      box("Inter-connected Articles", width = "100%", div(dataTableOutput("dt_citation"), style = "font-size:80%;"))
-                  )
-             )
-            
-        ),
+        ui_gen_network_analysis(),
         tabPanel("Topic Model",
             fluidRow(width = 12,
                 column(6,
@@ -95,13 +71,7 @@ ui <- dashboardPage(
             )
         ),
 
-        tabPanel("Raw Data", 
-                 fluidRow(width = 12,
-                          column(width = 12,
-                                 box(title = "Data Table" , width = "100%", div(dataTableOutput("data_table"), style = "font-size:80%;"))
-                          )
-                 )
-        )
+        ui_gen_raw_data()
     )
   )
 )

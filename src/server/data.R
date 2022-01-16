@@ -1,5 +1,4 @@
 #this file supports server.R
-
 get_display_data <- function(df, rv){
   if(isTruthy(rv$data)) {
     df <- rv$data

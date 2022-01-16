@@ -18,6 +18,26 @@ text_cleanse <- function(raw_text, stopwords = c(get_stopwords()$word)) {
   return(text_cleansed)
 }
 
+#'@description keywords are separated by semi columns, this function ensures keywords are treated as one word
+#'@param text text to be treated
+#'@return treated keywords
+format_keywords <- function(text, sep = ";"){
+  tryCatch({
+    if(!is.null(text)){
+      splitted <- str_split(text, pattern = sep)
+      splitted[[1]] %>% 
+          trimws() %>% 
+          str_replace_all(" ", "_") %>% 
+          paste(collapse = " ") %>%
+          tolower()
+    }
+  }, error = function(e) {
+    message("Error occurred formatting string")
+    message(e)
+  })
+}
+
+
 # process WoS (Web Of Science) data
 #' @param  file_path path to the tsv WoS file
 #' @return data frame with all data for the specific file
@@ -33,6 +53,7 @@ read_wos_data_file <- function(file_path) {
            mutate(raw_text = tolower(paste(abstract, keywords, keywordsp)),
                   clean_text = text_cleanse(raw_text),
                   doc_id = row_number(),
+                  formated_keywords = format_keywords(paste(keywords, keywordsp, sep = ";")),
                   publication_type = ifelse(publication_type == "J", "Journal",
                                      ifelse(publication_type == "B", "Book",
                                      ifelse(publication_type == "S", "Series",

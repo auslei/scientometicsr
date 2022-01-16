@@ -4,8 +4,8 @@ library(treemap)
 library(viridisLite)
 library(wordcloud2)
 
-source('./src/data_processing.R')
-source('./src/chart.R')
+source('./src/data/data_processing.R')
+source('./src/chart/chart.R')
 source('./src/topic_models.R')
 
 # Define server logic required to draw a histogram
@@ -30,14 +30,12 @@ server <- function(input, output, session) {
     # referring to function to service data_processing.R
     # concatenate if rv$data exists
     if(is.null(rv$data)){
-      
       rv$data <- read_data_file(input$data_file$datapath) %>%
                  drop_na(year)
     } else{
       rv$data <- read_data_file(input$data_file$datapath, df = rv$data) %>%
                  drop_na(year)
     }
-
   })
 
   # renders navigation bar filters
@@ -60,8 +58,7 @@ server <- function(input, output, session) {
                  input$research_areas,
                  input$publications,
                  input$publishers,
-                 input$year,
-                 rv$data)
+                 input$year)
   ,{
     if(isTruthy(rv$data)) {
       df <- rv$data
@@ -124,16 +121,17 @@ server <- function(input, output, session) {
   
   #display portion chart
   output$treemap <- renderHighchart({
-    var <- c('publication', 'publication_type')
     if(isTruthy(rv$filtered_data)){
-      df_summary <- rv$filtered_data %>% 
-                    group_by(!!!syms(var)) %>% 
-                    summarise(n = n(), s = sum(cited_count)) %>% 
-                    arrange(desc(s)) %>% head(25)
-      hchart(df_summary, "treemap", hcaes(x = publication, value = n, color = s))
+      gen_tree_map_chart(rv$filtered_data, category = input$gs_radio_type)
     }
   })
   
+  #wordcloud for filtered data
+  output$wordcloud <- renderWordcloud2({
+    if(isTruthy(rv$filtered_data)){
+      plot_wordcloud(rv$filtered_data, type = input$gs_wc_radio_type, ngram = input$gs_wc_ngrams)
+    }
+  })
   
   # renders network filters
   # output$network_filter <- renderUI({
@@ -145,8 +143,6 @@ server <- function(input, output, session) {
   # 
   
 
-  
-  
   # display a trend chart
   # output$trend_chart<- renderHighchart({
   #   if(isTruthy(df_display())){
@@ -155,25 +151,6 @@ server <- function(input, output, session) {
   #   }
   # })
   # 
-
-
-  
-  #wordcloud for filtered data
-  # output$wordcloud <- renderWordcloud2({
-  #   if(isTruthy(df_display())){
-  #     df <- df_display()
-  #     bigrams <- df %>% 
-  #       unnest_tokens(word, abstract) %>% 
-  #       anti_join(stop_words) %>% select(title, word) %>%
-  #       group_by(title) %>% 
-  #       summarise(text = paste0(word, collapse = " ")) %>%
-  #       unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
-  #       group_by(bigram) %>%
-  #       summarise(freq = n()) %>% 
-  #       arrange(desc(freq))
-  #     wordcloud2(data = bigrams, minSize = 10)
-  #   }
-  # })
   
   # observeEvent(df_display(), {
   #   if(isTruthy(df_display()) && nrow(df_display())>0){
@@ -236,17 +213,16 @@ server <- function(input, output, session) {
   #   plot_ggraph(g)
   # })
   
-  ##########################################
-  #               DATA TABLES              #
-  ##########################################
-  # output$data_table <- renderDataTable({
-  #   df <- df_display()
-  #   if(isTruthy(df)){
-  #     df %>% select(year, publication_type, title, cited_count, abstract, keywords, keywordsp) %>% arrange(year)
-  #   }
-  # }, options = list(pageLength = 10, info = FALSE))
-  # 
-  # 
+  #########################################
+  #              DATA TABLES              #
+  #########################################
+  output$data_table <- renderDataTable({
+    if(isTruthy(rv$filtered_data)){
+      rv$filtered_data %>% select(year, publication_type, title, cited_count, raw_text, clean_text, formated_keywords) %>% arrange(year)
+    }
+  }, options = list(pageLength = 10, info = FALSE))
+
+
   # output$dt_citation <- renderDataTable({
   #   if(isTruthy(rv$g_df)){
   #     df <- rv$g_df %>% mutate(vertex = paste0("<a href = 'https://www.doi.org/", vertex, "'>", vertex, "</a>"))

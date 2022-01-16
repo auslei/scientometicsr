@@ -1,8 +1,9 @@
 library(word2vec)
-source('./src/data_processing.R')
 library(parallel)
 library(tidytext)
 library(stringr)
+
+source('./src/data_processing.R')
 
 # training a w2v model
 train_w2v <- function(df, dimension = 300, iter = 20, type = "cbow") {
