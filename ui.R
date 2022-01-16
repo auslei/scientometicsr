@@ -1,9 +1,12 @@
 library(shiny)
+library(shinyjs)
 library(shinydashboard)
 library(highcharter)
 library(shinycssloaders)
 library(dashboardthemes)
 
+source('./src/ui_elements/ui_components.R')
+source('./src/ui_elements/dynamic_ui_components.R')
 source('./server.R')
 
 # Define UI for application that draws a histogram
@@ -15,8 +18,7 @@ ui <- dashboardPage(
   
   # Sidebar with a slider input for number of bins 
   sidebar = dashboardSidebar(
-       
-    uiOutput('filters'),
+    uiOutput('navbar_filter'),
     fileInput(inputId= 'data_file', label = "Upload Data File (WoS)", multiple = TRUE,
               accept = c("txt/tsv", ".txt", '.csv'))
     
@@ -24,13 +26,11 @@ ui <- dashboardPage(
   ),
   
   body = dashboardBody(
-    #useShinyjs(),
+    useShinyjs(),
     #tags$script(HTML("$('body').addClass('fixed');")),
     #tags$head(
     #  tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
     #),
-    
-    
     shinyDashboardThemes(
       theme = "grey_light"
     ),
@@ -42,24 +42,8 @@ ui <- dashboardPage(
     ),
     
     tabBox(title = "", width = 12, 
-        tabPanel("General Stats", width = "100%",
-          fluidRow(width = 12,
-            column(width = 6,
-              box(title = "Trending", width = "100%", highchartOutput("trend_chart") %>% withSpinner(color="#0dc5c1"))
-            ),
-            column(width = 6,
-              box(title = "Journals/Conferences", width = "100%", highchartOutput("treemap") %>% withSpinner(color="#0dc5c1"))
-            )
-          ),
-          fluidRow(
-            width = 12,
-            column(width = 6, 
-              box(title = "Word Cloud", width = "100%", wordcloud2Output("wordcloud") %>% withSpinner(color="#0dc5c1"))
-            )
-          ),
-        ),
+        ui_gen_status_panel(),
         tabPanel("Co-citation Analysis", 
-             
              fluidRow(width = 12, 
                   column(6,
                     box("Article Network", width = "100%", 

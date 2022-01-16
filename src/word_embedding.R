@@ -22,7 +22,7 @@ clean_text <- function(df){
   return(words)
 }
 
-
+nn  <- predict(model, c("automate"), type = "nearest", top_n = 15)
 
 set.seed(1234)
 

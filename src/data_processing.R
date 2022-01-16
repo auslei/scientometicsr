@@ -5,24 +5,81 @@ library(igraph)
 library(networkD3)
 library(tools)
 library(SnowballC)
+library(word2vec)
+library(tokenizers)
 
+# custom stop-words
+customer_sw <- c('automated', 'automation', 'building', 'construction', 'code', 'compliance', 'machine', 'learning', 'na')
+
+# cleanse, remove stop-words and stem
+text_cleanse <- function(raw_text, stopwords = c(get_stopwords()$word)) {
+  text_cleansed <- gsub("[^a-z\\s]", " ", tolower(raw_text))
+  text_cleansed <-  paste0(tokenize_word_stems(text_cleansed, stopwords = stopwords)[[1]], collapse = " ")
+  return(text_cleansed)
+}
 
 # process WoS (Web Of Science) data
-process_data <- function(file_path) {
+#' @param  file_path path to the tsv WoS file
+#' @return data frame with all data for the specific file
+read_wos_data_file <- function(file_path) {
+  
   read_tsv(file = file_path) %>%
     select(authors = AU, title = TI, publication = SO, conference = CT, keywords = DE, 
            keywordsp = ID, abstract = AB, researcher_id = RI, digital_object_id = DI, cited_reference_id = CR,
            cited_count = NR, publisher = PU, year = PY, wos_category = WC,
            research_area = SC, publication_type = PT) %>% 
-           filter(!is.na(abstract)) %>%
-           mutate(text = gsub("[^a-z]", " ", tolower(paste(abstract, keywords, keywordsp))), doc_id = row_number()) # combine all text you can find
+           replace_na(list(abstract = "", keywords = "", keywordsp = "")) %>%
+           rowwise() %>%
+           mutate(raw_text = tolower(paste(abstract, keywords, keywordsp)),
+                  clean_text = text_cleanse(raw_text),
+                  doc_id = row_number(),
+                  publication_type = ifelse(publication_type == "J", "Journal",
+                                     ifelse(publication_type == "B", "Book",
+                                     ifelse(publication_type == "S", "Series",
+                                     ifelse(publication_type == "P", "Patent",
+                                     ifelse(publication_type == "C", "Conference",
+                                            publication_type)))))
+                  ) # combine all text you can find
 }
 
-# process data from mulitple files
+
+#'@description Read data file from a literature indexing service
+#'@param data_path Data file path (full path)
+#'@param df Data frame to concatenate to, this is used to handle directory
+#'@param type Source of the data file, at the moment only wos tsv is supported
+read_data_file <- function(data_path, df = NULL, type = "wos"){
+  out <- tryCatch(
+    {
+      if (type == "wos") {
+        out <- read_wos_data_file(data_path)
+      } else {
+        e <- simpleError(paste0(type, "is currently not supported")) #throw an error if the method is not supported
+        stop(e)
+      }
+      
+      if(!is.null(df)){
+        out <- df %>% bind_rows(out) #concatenate with existing data
+      }
+      
+      out
+    },
+    
+    error = function(e){
+      message("Data file loading error (refer to below error): \n")
+      message(paste("File Path:", data_path, "\n"))
+      message(e)
+      message("\n")
+      NULL
+    }
+  )
+}
+
+
+# process data from multitple files
 #' @param file_path the directory where files are situated
 #' @param file_ext the file extension of the data files
 #' @return data frame
-load_data <- function(file_path, file_ext = 'txt'){
+read_wos_data_files <- function(file_path, file_ext = 'txt'){
   df <- NULL
   if(dir.exists(file_path)){
     for(f in list.files(file_path)){
@@ -30,12 +87,12 @@ load_data <- function(file_path, file_ext = 'txt'){
       if(file_test("-f", full_path) && file_ext(full_path) == file_ext){
         if(!is.null(df)){
           print(paste0("loading file: ", full_path))
-          t <- process_data(full_path)
+          t <- read_wos_data_file(full_path)
           #print(t %>% head())
           df <- df %>% bind_rows(t)
         }
         else
-          df <- process_data(full_path)
+          df <- read_wos_data_file(full_path)
       }
     }
   }
@@ -75,13 +132,10 @@ extract_doi <- function(df) {
 # generate graph based on the data frame passed in
 generate_net_work <- function(df) {
   data <- df %>% filter(!is.na(df$digital_object_id))
-            
-  
   e <- data %>% 
     extract_doi() %>%
            filter(cited_doi %in% data$digital_object_id) %>%  # contained within selected articles (do not consider others)
            select(from = doi, to = cited_doi)   # node to node strength can be considered as 1, unless cross reference
-  
   
   v <- as.data.frame(list(doi = unique(c(e$from, e$to)))) %>% #this won't be required if only consider articles in the list (can just use data table)
            left_join(data %>% select(doi = digital_object_id, title, cited_count) %>% unique()) %>%
@@ -133,26 +187,21 @@ get_term_freq <- function(df){
   
 }
 
-# remove stopwords and stem text document
-#' @param df dataframe containing text (expected doc_id and text column to exist)
-#' @return df_cleansed, data frame containing doc_id and cleansed text
-cleanse_text <- function(df){
-  df_cleansed <- df %>% 
-    unnest_tokens(word, text) %>% 
-    anti_join(get_stopwords()) %>%
-    mutate(word = wordStem(word)) %>%
-    group_by(doc_id) %>%
-    summarise(text_cleansed = paste0(word, collapse = " ")) 
-  
-  return(df_cleansed)
-}
 
 # search data frame for data
 #' @param df dataframe for the search to be applied 
 #' @param search_text string searching for a specific text (this will be converted into regexp)
 #' @return filtered data frame
-search <- function(df, search_text){
-  words <- strsplit(search_text, " ")[[1]] %>% wordStem() %>% paste(collapse = '|')
+search <- function(df, search_text, top_n = 5, regex = T){
+  model <- read.word2vec("w2v.bin")
+  embedding <- as.matrix(model)
+  if(regex){
+    words <- strsplit(search_text, " ")[[1]] %>% wordStem() 
+    regexp <- words %>% paste(collapse = '.*')
+  } else {
+    words <- strsplit(search_text, " ")[[1]] 
+  }
+  
   df %>% filter(grepl(words, text_cleansed))
 }
 

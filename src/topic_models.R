@@ -6,12 +6,6 @@ library(SnowballC)
 library(tidyverse)
 library(textmineR)
 
-# stopwords
-customer_sw <- c('automated', 'automation', 'building', 'construction', 'code', 'compliance',
-                 'machine', 'learning', 'na')
-
-sw <- c(stop_words$word, customer_sw)
-
 
 # pre-process text for modelling
 preprocess_text <- function(df, sw = stop_words$word, removeNonAlphabet = T,
@@ -45,8 +39,16 @@ preprocess_text <- function(df, sw = stop_words$word, removeNonAlphabet = T,
 }
 
 
+# generate document term matrix (doc_id vs terms freq)
+#' @param df_clean dataframe with cleansed data, require column text_cleansed
+#' @param ngram_min minimal grams 
+#' @param ngram_max maxiumum grams
+#' @min_occ get rid of any terms below min occ
+#' @max_occ get rid of any terms occurring too freq (default 50%)
+#' @return document term matrix
 generate_dtm <- function(df_clean, ngram_min = 1, ngram_max = 2, min_occ = 10, max_occ = 0.5){
-  dtm <- CreateDtm(doc_vec = df_clean$text, 
+  
+  dtm <- CreateDtm(doc_vec = df_clean$clean_text, 
                    doc_names = df_clean$doc_id, 
                    ngram_window = c(ngram_min, ngram_max),
                    verbose = TRUE)
