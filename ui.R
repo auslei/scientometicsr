@@ -4,74 +4,45 @@ library(shinydashboard)
 library(highcharter)
 library(shinycssloaders)
 library(dashboardthemes)
+library(shiny)
+library(wordcloud2)
+library(htmltools)
 
-source('./src/ui/ui_components.R')
-source('./src/ui/dynamic_ui_components.R')
-source('./server.R')
+source('./src/modules/upload_files/module_upload_files.R')
+source('./src/modules/data_filters/module_data_filter.R')
+source('./src/modules/data_visualisation/mod_summary_tab.R')
+source('./src/modules/network_analysis/mod_network_analysis.R')
+#source("./src/modules/data_visualisation/module_wordcloud.R")
+#source("./src/modules/data_visualisation/ui_utils.R")
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(
-  
-  title = "ScientometicR",
+  title = "ScientometricR",
   # Application title
   header = dashboardHeader(title = "ScientometicR"),
-  
-  # Sidebar with a slider input for number of bins 
+  # Sidebar with a slider input for number of bins
   sidebar = dashboardSidebar(
-    uiOutput('navbar_filter'),
-    fileInput(inputId= 'data_file', label = "Upload Data File (WoS)", multiple = TRUE,
-              accept = c("txt/tsv", ".txt", '.csv'))
+    mod_data_filter_ui("data_filter"),
+    mod_upload_file_ui('upload_file')
   ),
-  
+
   body = dashboardBody(
     useShinyjs(),
-    #tags$script(HTML("$('body').addClass('fixed');")),
-    #tags$head(
-    #  tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
-    #),
-    shinyDashboardThemes(
-      theme = "grey_light"
-    ),
+    includeScript(path = "www/custom.js"),
+    #includeCSS(path = "www/custom.css"),
     
-    # Show a plot of the generated distribution
-    fluidRow(width = 12,
-      uiOutput("infoboxes")
-    ),
-    
-    tabBox(title = "", width = 12, 
-        ui_gen_status_panel(),
-        ui_gen_network_analysis(),
-        tabPanel("Topic Model",
-            fluidRow(width = 12,
-                column(6,
-                      box("Inputs", 
-                        fluidRow(width = 6, 
-                                 sliderInput("topcs", "# of topics",  min = 2, max = 20, value = 5),
-                                 sliderInput("ngram", label = "# words (ngrams)" , min = 1, max = 4, value = 2),
-                                 checkboxInput("stem", "Stem Words", value = T),
-                                 checkboxInput("clean", "Keep only alphabets", value = T),
-                                 textInput("stopwords", "Stop Words", "Enter words to exclude")
-                                 ),
-                        fluidRow(width = 6,
-                          actionButton("generate_tm", "Generate Topic Model", icon = icon("table"))
-                        )
-                      )
-                ),
-                column(6,
-                  box("Top Terms", width = "100%",
-                      div(dataTableOutput("tdm_stat"), style = "font-size:80%;")),
-                  
-                  
-                )
-            ),
-            fluidRow(width = 12,
-                     box("Top Terms in Topics", width = "100",
-                         plotOutput("topic_plot")
-                     )
-            )
+    fluidRow(uiOutput("infoboxes")),
+    #fluidRow(module_wordcloud_ui("wordcloud")),
+    fluidRow(
+      tabBox(title = "Summary", width = 12,
+        mod_data_summary_tab_ui("summary"),
+        tabPanel("Raw Data", width = "100%",
+          box(title = "Data Table" , width = "100%", div(dataTableOutput("data_table"), style = "font-size:80%;"))
         ),
-
-        ui_gen_raw_data()
+        tabPanel("Network Analysis", width = "100%",
+          mod_visnetwork_ui("network")
+        )
+      )
     )
   )
 )

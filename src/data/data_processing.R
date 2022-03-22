@@ -208,6 +208,24 @@ get_term_freq <- function(df){
   
 }
 
+# search data frame for data
+#' @param df dataframe for the search to be applied 
+#' @param search_text string searching for a specific text 
+#' @param regex if using regex or just select based on matching text
+#' @return filtered data frame
+simple_search <- function(df, search_text, search_columns, regex = T){
+  browser()
+  if(regex){
+    ret <- df %>% filter(str_detect(paste(!!!syms(search_columns)), regex(search_text, ignore_case = T)))
+  } else {
+    ret<- df %>% filter(tolower(search_text) %in% tolower(paste(!!!syms(search_columns))))
+  } 
+  
+  if(nrow(ret) > 0)
+    return(ret)
+  else
+    return(NULL)
+}
 
 # search data frame for data
 #' @param df dataframe for the search to be applied 
@@ -225,4 +243,9 @@ search <- function(df, search_text, top_n = 5, regex = T){
   
   df %>% filter(grepl(words, text_cleansed))
 }
+
+
+
+
+
 

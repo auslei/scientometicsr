@@ -129,10 +129,11 @@ gen_tree_map_chart <- function(df, category, limit_data = 25){
       summarise(n = n(), s = sum(cited_count)) %>% 
       arrange(desc(s)) %>% head(limit_data)
     
-    print(df_summary)
-    hchart(df_summary, "treemap", hcaes(x = !!category, value = n, color = s))
+    hchart(df_summary, "treemap", hcaes(x = !!category, value = n, color = s)) %>%
+      hc_exporting(enabled = TRUE)
   },
   error = function(e){
+    browser()
     message("Error rendering tree-map chart: \n")
     message(e)
     NULL

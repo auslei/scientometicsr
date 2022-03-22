@@ -1,0 +1,279 @@
+---
+title: "Literature Review - Automated Compliance Check (in construction)"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning = F, echo = F}
+source("./src/modules/upload_files/data.R")
+source("./src/modules/network_analysis/util.R")
+library(DT)
+library(highcharter)
+library(knitr)
+library(kableExtra)
+library(xtable)
+library(igraph)
+library(visNetwork)
+
+knitr::opts_chunk$set(echo = T, warning = F)
+
+# cleaning
+df <- read_wos_data_file("~/Downloads/savedrecs.txt") %>% 
+      mutate(author = gsub(",", "", author)) %>%
+      filter(publication_type == "Journal")
+
+print(paste("loaded ", nrow(df), "rows..."))
+```
+
+
+## Summary
+
+Search results are loaded with `r nrow(df)` articles.
+
+## Distribution by Web Of Science Categories
+
+The *Web Of Science" library finely categorises research literature, where each literature may reside in multiple categories. The analysis for which is done via separate categories (as each of the document will contain), then counting unique articles. 
+
+```{r categories}
+df_summary <- df %>% select(doc_id, wos_category, doi, citations) %>% 
+                  separate_rows(wos_category, sep = ";") %>% 
+                  mutate(wos_category = trimws(wos_category)) %>% 
+                  group_by(wos_category) %>% 
+                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations))) %>% 
+                  arrange(desc(n))
+
+kable(df_summary %>% head(10), 
+      rows.names = T,
+      col.names = c("Research Area", "Number of Literatures", "Average Citations") , format = "html") 
+```
+
+Below chart shows the distribution of the categories (top 20):
+
+```{r categories_chart}
+
+hchart(df_summary %>% head(20), "treemap", hcaes(x = wos_category, value = n, color = avg_citations)) 
+```
+
+## Authors review
+
+This is to measure authors contributions, based on total publications, total citations and average citations. 
+
+```{r authors}
+df_au_summary <- df %>% group_by(author) %>%
+  summarise(n = n_distinct(doi), citations = sum(citations)) %>% arrange(desc(n)) 
+
+kable(df_au_summary %>% head(15), rows.names = T,
+      col.names = c("Authors", "Number of Literatures", "Total Citations") , format = "html") 
+      # kable_styling(full_width = F,
+      #              font_size = 12,
+      #              position = "left")
+```
+
+The below shows distribution of the number of articles:
+
+```{r author_summary}
+  print("*Stats of authors articles*")
+  print((t(summary(df_au_summary))))
+```
+
+## Distribution of # of Papers
+```{r pressure, echo=FALSE}
+# highchart() %>%
+#     hc_xAxis(type = "category") %>%
+#     hc_add_series_list(data_to_boxplot(data = df_au_summary, add_outliers = F, variable = n, name = "No. of Publications")) %>%
+#     hc_add_series_list(data_to_boxplot(data = df_au_summary, variable = citations, name = "Total Citations"))
+
+#df_au_summary <- 
+
+hchart(density(df_au_summary$n), type = "area", name = "Distribution of Publications")
+#hchart(df_au_summary$n, name = "Distribution of Publications")
+    
+```
+
+
+## authors and citations
+
+```{r authors_citations}
+outersect <- function(x, y) {
+  sort(c(setdiff(x, y),
+         setdiff(y, x)))
+}
+
+# generate reference table
+df_ref <- generate_reference_table(df)
+
+df_ref_exclud_self_ref <- df_ref %>% filter(author != referenced_author)
+  
+core_authors <- intersect(df_ref$author, df_ref$referenced_author) # this is to ensure referenced author also published in the area
+
+print(paste(length(core_authors), "/", length(unique(df_ref$author)), " have both publish an article and been cited."))
+
+df_ref %>% 
+      group_by(referenced_author, year) %>% 
+      summarise(n_refs = n_distinct(doi)) %>% 
+      arrange(desc(year), desc(n_refs))
+
+authors_not_referenced <- outersect(core_authors, df_ref$author)
+
+irrelevant_authors <- df %>% filter(author %in% authors_not_referenced) %>% 
+                    select(author, publication, year, title, citations) %>% 
+                    mutate(is_eng_cons = ifelse(str_detect(tolower(publication), "civil|construction|engin"), 1, 0))
+
+# eng authors
+eng_authors <- irrelevant_authors %>% filter(is_eng_cons == 1) %>% pull(author)
+irrelevant_authors_summary <- irrelevant_authors %>% 
+                              group_by(author) %>% 
+                              filter(author %in% eng_authors) %>%
+                              summarise(n=n_distinct(title), total_citation = sum(citations)) %>%   
+                              arrange(desc(total_citation), desc(n))
+
+
+a <- irrelevant_authors_summary$author %>% head(10)
+irrelevant_authors %>% filter(author %in% a)
+
+#hchart(irrelevant_authors_summary %>% head(20), "column", hcaes(x = publication, y = n)) 
+
+
+kable(irrelevant_authors %>% 
+        filter(author %in% a) %>%
+        select(publication, author, year, title, citations) %>%
+        arrange(desc(citations)), 
+        row.names = T,
+        col.names = c("Publication", "Author", "Year", "Title", "No. of Citations")
+      )
+
+```
+
+## calculate author scores:
+
+$S = \sum_{i=1}^{n}\alpha^{(Y-y_i)}{c}_i$
+
+```{r auuthor_score}
+sample_author <- df %>% 
+  filter(author == "Zhong, BT") %>% 
+  select(year, title, citations) %>% arrange(desc(year))
+
+kable(sample_author)
+
+get_author_score <- function(df, this_year = 2022, alpha = 0.9){
+  df %>% filter(!is.na(year)) %>% 
+    mutate(s = alpha^(this_year-year) * citations) %>% 
+    group_by(author) %>% summarise(score = floor(sum(s)), total_citation = sum(citations)) %>% 
+    arrange(desc(score))
+}
+
+author_scores = get_author_score(df)
+
+kable(author_scores %>% head(10), 
+      rows.names = T,
+      col.names = c("Author", "Score", "Total Citations") , format = "html") 
+```
+
+### Pre-2000 authors, citations
+```{r}
+df %>% filter(year <2010) %>% 
+  select(year, publication, author, title, doi, citations) %>% 
+  head() %>% 
+  arrange(desc(citations)) %>% 
+  kable(row.names = T, col.names = c("Year", "Journal", "Author", "Title", 'DOI', "No. Of Citations"))
+```
+
+### Chart
+```{r}
+#hchart(density(df_au_summary$n), type = "area", name = "Distribution of Publications")
+hchart(density(author_scores$total_citation), name = "Distribution of Publications")
+```
+
+## Building Networks
+
+### Vertcies
+Each of the vertex is an author:
+- label
+- score
+
+### Edges
+This is author links, try weighting
+
+```{r edges_vertices}
+
+# edge
+v <- author_scores %>% mutate(author = gsub(",", "",  author)) %>%
+     select(id = author, label = author, value = score, citations = total_citation) %>%
+     filter(!(id %in% irrelevant_authors$author))
+  
+e <- df_ref %>% 
+     select(from = author, to = referenced_author) %>%
+     filter(from %in% v$id & to %in% v$id)
+
+# this is to attempt to generate undirected graphs with weights
+x <- e %>% mutate(x = ifelse(from > to, paste(to, from, sep = ";"), paste(from, to, sep = ";"))) %>% 
+      group_by(x) %>% 
+      summarise(weight = n(), .groups = "drop") %>%
+      separate(x, c("from", "to"), sep = ";")  
+
+g <- graph_from_data_frame(x, vertices = v, directed = F) #directed graph
+
+wc_edge <- cluster_edge_betweenness(g)
+print(paste(length(wc_edge), " edge communities found.."))
+
+wc_louvain <- cluster_louvain(g)
+print(paste(length(wc_louvain), " louvain communities found.."))
+
+wc_walk <- cluster_walktrap(g)
+print(paste(length(wc_walk), " walk communities found.."))
+
+wc <- wc_louvain
+
+print(paste(length(wc), "communities found.."))
+keep = which(table(wc$membership) > 1)
+sub_g <- induced_subgraph(g, V(g)[(wc$membership %in% keep) | V(g)$value > 11])
+
+plot_community(sub_g, sub_wc, 3)
+
+
+
+
+# 
+# # remove verticies with smaller citations <=
+# g2 <- induced_subgraph(g, V(g)[V(g)$value >= 20]) 
+# 
+# # randome walk to determing communities
+# wc <- walktrap.community(g2) # random walk performed to identify optimal clusters
+# print(paste(length(wc), "communities found.."))
+# 
+# # get membership details
+# keep = which(table(wc$membership) > 1)
+# 
+# #keep only verticies/edges in groups with at least 2 members
+# g3 <- induced_subgraph(g2, V(g2)[wc$membership %in% keep])
+#   
+# # https://arxiv.org/abs/physics/0512106
+# # random walk performed to identify optimal clusters
+# wc <- walktrap.community(g3) 
+# cat(file = stderr(), length(wc), "communities found..", "\n")
+# V(g3)$group = wc$membership
+# V(g3)$title = V(g3)$label
+# 
+# # generate nodes 
+# nodes <- data.frame(id = V(g3)$label, 
+#                     label = V(g3)$label, 
+#                     value = V(g3)$value,
+#                     group = wc$membership,
+#                     title = V(g3)$label)
+# 
+# edges <- as_edgelist(g3) %>% as.tibble()
+# colnames(edges) = c("from", "to")
+# edges <- as.data.frame(edges)
+# 
+# visNetwork(nodes = nodes, edges = edges) %>%
+#   visIgraphLayout(layout = "layout_in_circle", physics = F, smooth = T, type = "full") %>%
+#   visOptions(highlightNearest = list(enabled = T, hover = T), 
+#              nodesIdSelection = T)
+```
+
+```{r}
+authors_list <- df %>% mutate(author = gsub(",", "", author)) %>% .$author
+exc_authors <- V(g)[which(table(wc$membership) == 1)]
+df_exc <- df %>% mutate(author = gsub(",", "", author)) %>% filter(publication_type == "Journal" & author %in% exc_authors$label)
+df_exc_ref <- generate_reference_table(df_exc)
+intersect(df_exc_ref$referenced_author, authors_list)
+```

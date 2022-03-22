@@ -1,39 +1,5 @@
 library(shiny)
 
-#'@description generate filters based on data changes
-#'@param df literature data files
-gen_navbar_filters <- function(df){
-  out <- tryCatch(
-    {
-      # if df is not null
-      if(isTruthy(df)){
-        publications <-  df %>% group_by(publication) %>% summarise(n = n()) %>% arrange(desc(n)) %>% pull(publication)
-        research_areas <- df %>% group_by(research_area) %>% summarise(n = n()) %>% arrange(desc(n)) %>% pull(research_area)
-        year_min <-  min(df$year, na.rm = T)
-        year_max <- max(df$year, na.rm = T)
-        publication_types <- df$publication_type %>% unique() %>% sort()
-        
-        #browser()
-        
-        filters <- tagList(
-          checkboxGroupInput(inputId = "publication_types", label = "Publication Type", choices = publication_types, inline = T),
-          selectInput(inputId = "research_areas", label = "Research area", choices = research_areas, multiple = T, selected = NULL),
-          selectInput(inputId = "publications", label = "Journal/Conference", choices = publications, multiple = T, selected = NULL),
-          sliderInput(inputId = "year", label = 'Year', min = year_min, max = year_max, value = c(year_min, year_max))
-        )
-        
-        filters
-      }
-    }, 
-    error = function(e){
-      message("Error occurred rendering filters:\n")
-      message(e)
-      NULL
-    }
-  )
-}
-
-
 # generate filters based on data provided
 gen_summary_boxes <- function(df, df_network = NA){
   df_summary <- df %>% 
