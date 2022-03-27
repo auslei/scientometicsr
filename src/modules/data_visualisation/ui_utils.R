@@ -81,7 +81,14 @@ plot_wordcloud <- function(df, type = "raw", ngram = 2){
     } else if (type == "clean"){
       text_col = "clean_text"
       ngram = strtoi(ngram)
-    } else {
+    } else if (type == "abstract") {
+      text_col = "abstract"
+      ngram = strtoi(ngram)
+    } else if (type == "title") {
+      text_col = "title"
+      ngram = strtoi(ngram)
+    }
+    else {
       text_col = "formated_keywords"
       ngram = 1
     }

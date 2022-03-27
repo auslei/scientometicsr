@@ -1,5 +1,6 @@
-source('./src/modules/data_visualisation/ui_utils.R')
-
+#source('./src/modules/data_visualisation/ui_utils.R')
+library(igraph)
+library(visNetwork)
 
 #'@description Generate reference summary from a data frame, expanding author + doi article references
 #'@param df either full or filtered dataframe
@@ -147,29 +148,15 @@ generate_author_network <- function(df) {
 
 # plot communit using visNetwork
 plot_visnetwork <- function(g, wc = NULL, layout = "layout_nicely"){
-  if(!is.null(wc)){
-    nodes <- data.frame(id = V(g)$label, 
-                        label = V(g)$label, 
-                        value = V(g)$value,
-                        group = wc$membership,
-                        title = V(g)$label)
-  } else {
-    nodes <- data.frame(id = V(g)$label, 
-                        label = V(g)$label, 
-                        value = V(g)$value,
-                        title = V(g)$label)   
-  }
-  edges <- as_edgelist(g) %>% as.tibble()
-  colnames(edges) = c("from", "to")
-  edges <- as.data.frame(edges)
+
+  vis_data <- toVisNetworkData(g)
+  vis_data$nodes$group = wc$membership
   
-  visNetwork(nodes = nodes, edges = edges) %>%
+  visNetwork(nodes = vis_data$nodes, edges = vis_data$edges) %>%
     visIgraphLayout(layout = layout, physics = F, smooth = T, type = "full") %>%
     visOptions(highlightNearest = list(enabled = T, hover = T), 
                nodesIdSelection = T)
 }
-
-plot_visnetwork(sub_g, sub_wc)
 
 # plot a specific graph grooup
 plot_community <- function(g, wc, index, layout = "layout_nicely") {
