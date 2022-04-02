@@ -124,42 +124,42 @@ mod_visnetwork_server <- function(id, data){
 # 
 # 
 # 
-# # plot network using default plot function
-# plot_net_work <- function(g) {
-#   
-#   wc <- walktrap.community(g) # random walk performed to identify optimal clusters
-#   print(paste(length(wc), "communities found.."))
-#   
-#   max_degree <- max(V(g)$degree)
-#   max_page_rank <- max(V(g)$page_rank)
-#   max_eigen <- max(V(g)$eigen)
-#   max_betweeness <- max(V(g)$betweeness)
-#   
-#   #print(max_degree)
-#   #print(max_page_rank)
-#   #print(max_eigen)
-#   #print(max_betweeness)
-#   
-#   plot(wc, g, 
-#        #vertex.label = ifelse(degree(g, mode = "out") >= 1, 
-#         #                     str_wrap(V(g)$alias, 25), NA),
-#        edge.arrow.size = .2, 
-#        vertex.size = ifelse(V(g)$total_citations/10),
-#        #vertex.col = ifelse(V(g)$degree == max_degree, "black", "green"),
-#        mark.border = "black",
-#        edge.curved = T)
-#   
-#   #vertex.label=NA,
-#   #mark.groups = members,
-#   #vertex.size = V(g)$cited_count,
-#   #mark.border="black", 
-#   #mark.col=col_vector,
-#   #vertex.label.cex = 0.7,
-#   #vertex.size = V(g)$degree,
-#   #edge.arrow.size=.2, edge.curved = T, 
-#   #asp = 0.5, #aspect ratio
-#   #layout=layout.fruchterman.reingold)
-# }
+# plot network using default plot function
+plot_net_work <- function(g) {
+
+  wc <- walktrap.community(g) # random walk performed to identify optimal clusters
+  print(paste(length(wc), "communities found.."))
+
+  max_degree <- max(V(g)$degree)
+  max_page_rank <- max(V(g)$page_rank)
+  max_eigen <- max(V(g)$eigen)
+  max_betweeness <- max(V(g)$betweeness)
+
+  #print(max_degree)
+  #print(max_page_rank)
+  #print(max_eigen)
+  #print(max_betweeness)
+
+  plot(wc, g,
+       #vertex.label = ifelse(degree(g, mode = "out") >= 1,
+        #                     str_wrap(V(g)$alias, 25), NA),
+       edge.arrow.size = .2,
+       vertex.size = ifelse(V(g)$total_citations/10),
+       #vertex.col = ifelse(V(g)$degree == max_degree, "black", "green"),
+       mark.border = "black",
+       edge.curved = T)
+
+  #vertex.label=NA,
+  #mark.groups = members,
+  #vertex.size = V(g)$cited_count,
+  #mark.border="black",
+  #mark.col=col_vector,
+  #vertex.label.cex = 0.7,
+  #vertex.size = V(g)$degree,
+  #edge.arrow.size=.2, edge.curved = T,
+  #asp = 0.5, #aspect ratio
+  #layout=layout.fruchterman.reingold)
+}
 # 
 # 
 # doi <- extract_doi(df)
@@ -168,4 +168,11 @@ mod_visnetwork_server <- function(id, data){
 # df %>% select (authors, title, cited_reference_id) %>% 
 #         separate_rows(authors, sep = ";") %>%
 #         separate_rows(cited_reference_id, sep = ",")
+
+
+layout = layout_with_fr(sub_g)
+plot(sub_wc, sub_g, 
+      vertex.label = NA, 
+      vertex.size = log(V(sub_g)$value), edge.arrow.size = .2)
+
 

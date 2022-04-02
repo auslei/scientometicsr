@@ -248,15 +248,28 @@ plot_community(sub_g, sub_wc, 1)
 
 ```
 
+```{r further_cluster}
+keep = which(table(wc$membership) > 10)
+sub_g <- induced_subgraph(g, V(g)[(wc$membership %in% keep)])
+print(paste(length(V(sub_g)), "verticies filtered out"))
+
+sub_wc <- cluster_louvain(sub_g)
+print(paste(length(sub_wc), " louvain communities found.."))
+
+plot_visnetwork(sub_g, sub_wc)
+```
+
 
 ```{r cluster analysis}
 
 # assign authors to communities
-author_communities <- as.data.frame(list(author=names(V(sub_g)), community=sub_wc$membership), 
+author_communities <- as.data.frame(list(author=names(V(sub_g)), 
+                                         community=sub_wc$membership), 
                                     stringsAsFactors=FALSE)
 
 df_merged <- df %>% merge(author_communities, by = "author") %>% 
-                    select(doc_id, author, community, title, abstract, year, raw_text, clean_text, formated_keywords)
+                    select(doc_id, author, community, title, abstract, year, 
+                           raw_text, clean_text, formated_keywords, citations)
 
 plot_wordcloud(filter(df_merged, community == 1), type = "clean")
 
@@ -311,8 +324,8 @@ ggplot(filter(keywords_summary, community %in% filter(communities, members <= 10
 ``` {r results = "asis"}
 df_author_community <- author_scores %>% merge(author_communities, by = "author") 
 
-for(i in c(1, 2, 12, 6)) {
-  print(paste("## Top score for community ", i))
+for(i in c(1, 2, 12, 6, 178, 8, 40)) {
+  cat(paste("## Top score for community ", i))
   t <- df_author_community %>% 
           filter(community == i) %>% 
           arrange(desc(score)) %>% 
@@ -322,11 +335,18 @@ for(i in c(1, 2, 12, 6)) {
           arrange(desc(citations)) %>% head() %>%
           kable()
   
-  print(t)
+  cat(t)
 }
 ```
 ```{r analyse_silos}
 silos <- df_merged %>% filter(community %in% communities[7:nrow(communities),]$community)
 
 silos %>% select(author, title) %>% kable()
+
+
+keywords_summary_silo <- keywords %>% 
+            filter(author %in% silos$author) %>%
+            group_by(author) %>%
+            count(bigram, sort = T) %>% 
+            bind_tf_idf(bigram, author, n) #%>% slice_max(order_by = tf_idf, n = 10)
 ```
