@@ -150,12 +150,13 @@ generate_author_network <- function(df) {
 plot_visnetwork <- function(g, wc = NULL, layout = "layout_nicely"){
 
   vis_data <- toVisNetworkData(g)
-  vis_data$nodes$group = wc$membership
-  
+  if(is.null(wc))
+    vis_data$nodes$group = V(g)$membership
+  #browser()
   visNetwork(nodes = vis_data$nodes, edges = vis_data$edges) %>%
-    visIgraphLayout(layout = layout, physics = F, smooth = T, type = "full") %>%
-    visOptions(highlightNearest = list(enabled = T, hover = T), 
-               nodesIdSelection = T)
+    visIgraphLayout(layout = layout, physics = F, smooth = T, type = "square") %>%
+    visOptions(highlightNearest = list(enabled = T, degree = 2, hover = F), 
+               nodesIdSelection = T, selectedBy = "group")
 }
 
 # plot a specific graph grooup

@@ -1,0 +1,75 @@
+---
+title: "Literature Review"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning = F, echo = F}
+source("./src/modules/upload_files/data.R")
+source("./src/modules/network_analysis/util.R")
+source("./src/modules/data_visualisation/ui_utils.R")
+library(DT)
+library(highcharter)
+library(knitr)
+library(kableExtra)
+library(xtable)
+library(igraph)
+library(visNetwork)
+library(wordcloud2)
+
+knitr::opts_chunk$set(echo = F, warning = F)
+
+# cleaning - search results from WOS
+df <- read_wos_data_file("~/Downloads/savedrecs.txt") %>% 
+      mutate(author = gsub(",", "", author)) %>%
+      filter(publication_type == "Journal")
+
+print(paste("loaded ", nrow(df), "rows..."))
+```
+
+
+# Summary
+Search results are loaded with `r nrow(df)` articles. 
+
+## Distribution by Web Of Science Categories
+
+The **Web Of Science** library finely categorises research literature, where each literature may reside in multiple categories. The analysis for which is done via separate categories (as each of the document will contain), then counting unique articles. \
+\
+\
+
+
+```{r categories, echo=FALSE, results = 'asis'}
+df_summary <- df %>% select(doc_id, wos_category, doi, citations) %>% 
+                  separate_rows(wos_category, sep = ";") %>% 
+                  mutate(wos_category = trimws(wos_category)) %>% 
+                  group_by(wos_category) %>% 
+                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations))) %>% 
+                  arrange(desc(n))
+
+cat("**Top 10 categories from search result**\\")
+cat("\\")
+# display data table
+datatable(df_summary %>% head(10), 
+          rownames = F,
+          colnames = c("Research Area", "Number of Literatures", "Average Citations"),
+          filter = "none", options = list(dom = 't')) 
+
+```
+
+```{r top_authors, echo=FALSE, results = 'asis'}
+df_summary <- df %>% select(author, doi, citations) %>% 
+                  group_by(author) %>% 
+                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations))) %>% 
+                  arrange(desc(n))
+
+df_author_score <- get_author_score(df)
+
+df_authors <- df_summary %>% left_join(df_author_score, by = "author") %>% arrange(desc(score))
+
+cat("**Top 10 authors from search result**\\")
+cat("\\")
+# display data table
+datatable(df_authors %>% head(10), 
+          rownames = F,
+          colnames = c("Author", "Number of Literatures", "Average Citations", "Score", "Total Citations"),
+          filter = "none", options = list(dom = 't')) 
+```

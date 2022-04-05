@@ -37,6 +37,18 @@ format_keywords <- function(text, sep = ";"){
   })
 }
 
+#'@description calculate a score for each of the author, NA if the year of the author is unknow, possible due to that the artcile is yet published
+#'@param df dataframe containing WOS data
+#'@param this_year the year to calculate time
+#'@param alpha coeffient to dimish contribution score
+#'@retun dataframe containing authors and scores.
+get_author_score <- function(df, this_year = 2022, alpha = 0.9){
+  df %>% filter(!is.na(year)) %>% 
+    mutate(s = alpha^(this_year-year) * citations) %>% 
+    group_by(author) %>% summarise(score = floor(sum(s)), total_citation = sum(citations)) %>% 
+    arrange(desc(score))
+}
+
 
 # process WoS (Web Of Science) data
 #' @param  file_path path to the tsv WoS file
@@ -44,9 +56,9 @@ format_keywords <- function(text, sep = ";"){
 read_wos_data_file <- function(file_path) {
   
   read_tsv(file = file_path) %>%
-    select(authors = AU, title = TI, publication = SO, conference = CT, keywords = DE, 
+    select(authors = AU, title = TI, publication = SO, conference = CT, keywords = DE, cited_count = Z9,
            keywordsp = ID, abstract = AB, researcher_id = RI, digital_object_id = DI, cited_reference_id = CR,
-           cited_count = NR, publisher = PU, year = PY, wos_category = WC,
+           reference_count = NR, publisher = PU, year = PY, wos_category = WC,
            research_area = SC, publication_type = PT) %>% 
            replace_na(list(abstract = "", keywords = "", keywordsp = "")) %>%
            rowwise() %>%

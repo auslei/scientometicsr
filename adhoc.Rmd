@@ -1,6 +1,6 @@
 ---
 title: "Literature Review - Automated Compliance Check (in construction)"
-output: html_document
+output: pdf
 ---
 
 ```{r setup, include=FALSE, warning = F, echo = F}
@@ -18,7 +18,7 @@ library(wordcloud2)
 
 knitr::opts_chunk$set(echo = F, warning = F)
 
-# cleaning
+# cleaning - search results from WOS
 df <- read_wos_data_file("~/Downloads/savedrecs.txt") %>% 
       mutate(author = gsub(",", "", author)) %>%
       filter(publication_type == "Journal")
@@ -27,7 +27,7 @@ print(paste("loaded ", nrow(df), "rows..."))
 ```
 
 
-## Summary
+# Summary
 Search results are loaded with `r nrow(df)` articles. 
 
 ## Distribution by Web Of Science Categories
@@ -42,9 +42,12 @@ df_summary <- df %>% select(doc_id, wos_category, doi, citations) %>%
                   summarise(n = n_distinct(doi), avg_citations = floor(mean(citations))) %>% 
                   arrange(desc(n))
 
-kable(df_summary %>% head(10), 
-      rows.names = T,
-      col.names = c("Research Area", "Number of Literatures", "Average Citations") , format = "html") 
+print("**Top 10 categories from search result**")
+
+datatable(df_summary %>% head(10), 
+          rownames = F,
+          colnames = c("Research Area", "Number of Literatures", "Average Citations")) 
+
 ```
 
 Below chart shows the distribution of the categories (top 20):
@@ -271,7 +274,7 @@ df_merged <- df %>% merge(author_communities, by = "author") %>%
                     select(doc_id, author, community, title, abstract, year, 
                            raw_text, clean_text, formated_keywords, citations)
 
-plot_wordcloud(filter(df_merged, community == 1), type = "clean")
+plot_wordcloud(filter(df_merged, community == 12), type = "keywords")
 
 c1 <- df %>% filter(author %in% sub_wc[[1]])
 
@@ -341,12 +344,33 @@ for(i in c(1, 2, 12, 6, 178, 8, 40)) {
 ```{r analyse_silos}
 silos <- df_merged %>% filter(community %in% communities[7:nrow(communities),]$community)
 
-silos %>% select(author, title) %>% kable()
-
-
 keywords_summary_silo <- keywords %>% 
             filter(author %in% silos$author) %>%
             group_by(author) %>%
             count(bigram, sort = T) %>% 
             bind_tf_idf(bigram, author, n) #%>% slice_max(order_by = tf_idf, n = 10)
+
+df_top_single_articles <- silos %>% select(author, title, citations, community) %>% arrange(desc(citations))
+
+clip <- pipe("pbcopy", "w")
+
+write.table(df_top_single_articles, file=clip)
+close(clip)
+```
+
+
+
+```{r areas_for_visualistaion}
+strong_connection <- c(1, 2, 12)
+weak_connection <- c(8, 40)
+
+V(sub_g)$community <- sub_wc$membership
+connected_graph_strong <- induced_subgraph(sub_g, V(sub_g)$membership %in% strong_connection)
+
+plot_visnetwork(connected_graph_strong)
+
+#sub_g
+#sub_wc
+
+
 ```

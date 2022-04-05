@@ -46,7 +46,7 @@ read_wos_data_file <- function(file_path) {
   read_tsv(file = file_path) %>%
     select(authors = AU, researchId = RI, title = TI, abstract = AB, publication = SO, conference = CT, keywords = DE, 
            keywordsp = ID, researcher_id = RI, doi = DI, book_doi = D2, cited_references = CR,
-           citations = NR, publisher = PU, ISSN = SN, ISBN = BN, year = PY, wos_category = WC,
+           citations = Z9, references = NR, publisher = PU, ISSN = SN, ISBN = BN, year = PY, wos_category = WC,
            research_area = SC, publication_type = PT) %>% 
     replace_na(list(abstract = "", keywords = "", keywordsp = "")) %>%
     rowwise() %>%
@@ -66,7 +66,6 @@ read_wos_data_file <- function(file_path) {
   
     # combine all text you can find
 }
-
 
 #'@description Read data file from a literature indexing service
 #'@param data_path Data file path (full path)
@@ -182,6 +181,22 @@ extract_doi <- function(df) {
   
   ret
 }
+
+
+
+#'@description calculate a score for each of the author, NA if the year of the author is unknow, possible due to that the artcile is yet published
+#'@param df dataframe containing WOS data
+#'@param this_year the year to calculate time
+#'@param alpha coeffient to dimish contribution score
+#'@retun dataframe containing authors and scores.
+get_author_score <- function(df, this_year = 2022, alpha = 0.9){
+  df %>% filter(!is.na(year)) %>% 
+    mutate(s = alpha^(this_year-year) * citations) %>% 
+    group_by(author) %>% summarise(score = floor(sum(s)), total_citation = sum(citations)) %>% 
+    arrange(desc(score))
+}
+
+
 
 proc <- function(text){
   text %>% 
