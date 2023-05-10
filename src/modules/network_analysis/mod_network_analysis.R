@@ -9,7 +9,9 @@ mod_visnetwork_ui <- function(id){
   ns <- NS(id)
   cat(file = stderr(), "Network UI componenet", "\n")
   tagList({
-    uiOutput(ns("network_ui"))
+    tabPanel("General Stats", width = "100%",
+      uiOutput(ns("network_ui"))
+    )
   })
 }
 
@@ -22,6 +24,12 @@ mod_visnetwork_server <- function(id, data){
       id,
       function(input, output, session) {
         ns <- NS(id)
+        
+        network_data <- reactive({
+          req(data())
+          generate_network(data())
+        })
+        
         output$network_ui <- renderUI({
           #browser()
           req(data())
@@ -37,8 +45,9 @@ mod_visnetwork_server <- function(id, data){
         # generate vis network
         output$visnetwork <- renderVisNetwork({
           cat(file = stderr(), "mod_network_analysis.R/visnetwork", "Generating network", "\n")
-          req(data())
-          generate_author_network(data())
+          req(network_data())
+          nw <- network_data()
+          plot_visnetwork(nw$g, nw$wc)
         })
       }
     )
@@ -170,9 +179,9 @@ plot_net_work <- function(g) {
 #         separate_rows(cited_reference_id, sep = ",")
 
 
-layout = layout_with_fr(sub_g)
-plot(sub_wc, sub_g, 
-      vertex.label = NA, 
-      vertex.size = log(V(sub_g)$value), edge.arrow.size = .2)
+# layout = layout_with_fr(sub_g)
+# plot(sub_wc, sub_g, 
+#       vertex.label = NA, 
+#       vertex.size = log(V(sub_g)$value), edge.arrow.size = .2)
 
 

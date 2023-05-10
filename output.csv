@@ -1,0 +1,130 @@
+﻿"year","author","title","community","citations"
+2021,"Altintas YD","Loose coupling of GIS and BIM data models for automated compliance checking against zoning codes",5,2
+2021,"Amato F","A Security and Privacy Validation Methodology for e-Health Systems",5,3
+2021,"Amor R","The promise of automated compliance checking",2,4
+2014,"Andrieux G","An integrative modeling framework reveals plasticity of TGF-beta signaling",3,10
+2021,"Aydin M","Building Information Modeling Based Automated Building Regulation Compliance Checking Asp.net Web Software",5,0
+2015,"Beach TH","A rule-based semantic approach for automated regulatory compliance in the construction sector",1,45
+2020,"Beach TH","Towards the adoption of automated regulatory compliance checking in the built environment",1,5
+2018,"Bellia L","University building: Energy diagnosis and refurbishment design with cost-optimal approach. Discussion about the effect of numerical modelling assumptions",14,24
+2019,"Bilancia P","A CAD/CAE integration framework for analyzing and designing spatial compliant mechanisms via pseudo-rigid-body methods",6,18
+2020,"Bloch T","Clustering Information Types for Semantic Enrichment of Building Information Models to Support Automated Code Compliance Checking",5,7
+2018,"Bloch T","Comparing machine learning and rule-based inferencing for semantic enrichment of BIM models",5,42
+2014,"Bosche F","Automating surface flatness control using terrestrial laser scanning and building information models",6,73
+2021,"Brooks MD","ConnecTF: A platform to integrate transcription factor-gene interactions and validate regulatory networks",3,3
+2018,"Cavka HB","LEVELS OF BIM COMPLIANCE FOR MODEL HANDOVER",5,4
+2003,"Chau KW","A coupled knowledge-based expert system for design of liquid-retaining structures",6,12
+2011,"Chen M","Petri net models for the semi-automatic construction of large scale biological networks",3,8
+2014,"Choi J","Development of BIM-based evacuation regulation checking system for high-rise and complex buildings",5,59
+2011,"Costa G","Secure service orchestration in open networks",1,2
+2008,"de Vries B","Assessing working conditions using Fuzzy Logic",1,5
+1995,"DELIS EA","AUTOMATIC FIRE-CODE CHECKING USING EXPERT-SYSTEM TECHNOLOGY",1,20
+2016,"Dimyadi J","Computerizing Regulatory Knowledge for Building Engineering Design",2,16
+2016,"Dimyadi J","MODELLING AND ACCESSING REGULATORY KNOWLEDGE FOR COMPUTER-ASSISTED COMPLIANCE AUDIT",2,16
+2020,"Fargnoli M","Building Information Modelling (BIM) to Enhance Occupational Safety in Construction Activities: Research Trends Emerging from One Decade of Studies",6,20
+2014,"Fathabadi H","Ultra high benefits system for electric energy saving and management of lighting energy in buildings",6,13
+2022,"Gao H","Computational Geometric Approach for BIM Semantic Enrichment to Support Automated Underground Garage Compliance Checking",5,0
+2019,"Ghannad P","Automated BIM data validation integrating open-standard schema with visual programming language",2,13
+2018,"Gholizadeh P","Diffusion of Building Information Modeling Functions in the Construction Industry",6,40
+2021,"Goodrick KJ","Systematic Optimization of Multiple-Output DC Distribution Architectures",3,0
+2021,"Guo DM","A Semantic Approach for Automated Rule Compliance Checking in Construction Industry",1,1
+2020,"Guo DM","An Approach of Automatic SPARQL Generation for BIM Data Extraction",1,1
+2020,"Guzman C","Local Estimation of Critical and Off-Peak Periods for Grid-Friendly Flexible Load Management",6,3
+2019,"Hajdukiewicz M","An automated standard-based life cycle quality inspection methodology for smart precast concrete solutions in buildings",6,4
+1998,"Han CS","Client/server framework for on-line building code checking",1,16
+2021,"Haussler M","Code compliance checking of railway designs by integrating BIM, BPMN and DMN",2,6
+2015,"Huang WX","Energy Sharing Control Scheme for State-of-Charge Balancing of Distributed Battery Energy Storage System",3,209
+2017,"Ilal SM","Computer representation of building codes for automated compliance checking",1,26
+2022,"Jiang L","Multi-ontology fusion and rule development to facilitate automated code compliance checking using BIM and rule-based reasoning",1,0
+2019,"Jiang SH","Combined MvdXML and Semantic Technologies for Green Construction Code Checking",1,10
+2016,"Karimidorabati S","Evaluation of automation levels for construction change management",6,7
+2019,"Khan N","Excavation Safety Modeling Approach Using BIM and VPL",6,17
+2020,"Khan N","Converging Technologies for Safety Planning and Inspection Information System of Portable Firefighting Equipment",6,1
+2019,"Kim H","Visual language approach to representing KBimCode-based Korea building code sentences for automated rule checking",2,15
+2020,"Kim I","DEVELOPMENT OF KBIM E-SUBMISSION PROTOTYPICAL SYSTEM FOR THE OPENBIM-BASED BUILDING PERMIT FRAMEWORK",5,3
+2012,"Kim I","Securing design checking service for the regulation-based product design",5,4
+2014,"Kim K","Automatic design and planning of scaffolding systems using building information modeling",6,74
+2020,"Kim K","Development of the layout method for a high-rise housing complex using parametric algorithm",6,1
+2020,"Kincelova K","Fire Safety in Tall Timber Building: A BIM-Based Automated Code-Checking Approach",2,2
+2018,"Koo B","Applying novelty detection to identify model element to IFC class misclassifications on architectural and infrastructure Building Information Models",5,18
+2021,"Koo B","Automatic classification of wall and door BIM element subtypes using 3D geometric deep neural networks",5,5
+2021,"Kovacs AT","BIM quality control based on requirement linked data",5,0
+2016,"Kumari S","Bottom-up GGM algorithm for constructing multilayered hierarchical gene regulatory networks that govern biological pathways or processes",2,7
+2012,"Largouet C","Use of timed automata and model-checking to explore scenarios on ecosystem models",3,9
+2016,"Lee H","Translating building legislation into a computer-executable format for evaluating building permit requirements",2,33
+2019,"Lee PC","An Efficient Design Support System based on Automatic Rule Checking and Case-based Reasoning",2,15
+2020,"Lee S","Optimization of Apartment-Complex Layout Planning for Daylight Accessibility in a High-Density City with a Temperate Climate",6,2
+2011,"Li C","Online model checking approach based parameter estimation to a neuronal fate decision simulation model in Caenorhabditis elegans with hybrid functional Petri net with extension",3,11
+2021,"Li YC","Semiautomatic Generation of Code Ontology Using ifcOWL in Compliance Checking",1,0
+2021,"Locatelli M","Exploring Natural Language Processing in Construction and Integration with Building Information Modeling: A Scientometric Analysis",1,0
+2015,"Lu Y","Ontology-based knowledge modeling for automated construction safety checking",1,45
+2015,"Malsane S","Development of an object model for automated compliance checking",5,44
+2013,"Martins JP","LicA: A BIM based automated code-checking application for water distribution systems",1,32
+2013,"McGibbney LJ","A COMPARATIVE STUDY TO DETERMINE A SUITABLE REPRESENTATIONAL DATA MODEL FOR UK BUILDING REGULATIONS",2,1
+2013,"Melzner J","Object-oriented safety planning of building construction by using Building Information Modeling",6,4
+2013,"Melzner J","A case study on automated safety compliance checking to assist fall protection design and planning in building information models",6,63
+2020,"Merigo L","Event-based control tuning of propofol and remifentanil coadministration for general anaesthesia",5,0
+2008,"Monteiro PT","Temporal logic patterns for querying dynamic models of cellular interaction networks",3,47
+2011,"Monteiro PT","Qualitative modelling and formal verification of the FLR1 gene mancozeb response in Saccharomyces cerevisiae",3,5
+2009,"Monteiro PT","A service-oriented architecture for integrating the modeling and formal verification of genetic regulatory networks",3,11
+2014,"Nahangi M","Automated 3D compliance checking in pipe spool fabrication",6,43
+2019,"Nawari NO","Blockchain and Building Information Modeling (BIM): Review and Applications in Post-Disaster Recovery",1,30
+2019,"Nawari NO","A Generalized Adaptive Framework (GAF) for Automating Code Compliance Checking",1,12
+2020,"Nawari NO","Generalized Adaptive Framework for Computerizing the Building Design Review Process",1,4
+2012,"Nawari NO","Automating Codes Conformance",1,25
+2022,"Noardo F","p IFC models for semi-automating common planning checks for building permits",5,0
+2018,"Olsson O","Automation of Building Permission by Integration of BIM and Geospatial Data",5,18
+2016,"Park S","DEFINITION OF A DOMAIN-SPECIFIC LANGUAGE FOR KOREAN BUILDING ACT SENTENCES AS AN EXPLICIT COMPUTABLE FORM",2,4
+2016,"Preidel C","TOWARDS CODE COMPLIANCE CHECKING ON THE BASIS OF A VISUAL PROGRAMMING LANGUAGE",2,30
+2014,"Qi J","Use of Building Information Modeling in Design to Prevent Construction Worker Falls",6,46
+2021,"Rodrigues F","Safety plugins for risks prevention through design resourcing BIM",6,4
+2013,"Salama DA","Automated Compliance Checking of Construction Operation Plans Using a Deontology for the Construction Domain",1,17
+2016,"Salama DM","Semantic Text Classification for Supporting Automated Compliance Checking in Construction",1,42
+2014,"Schaefer C","A Process Analytical Technology (PAT) approach to control a new API manufacturing process: Development, validation and implementation",14,33
+2021,"Schranz C","POTENTIALS OF AUGMENTED REALITY IN A BIM BASED BUILDING SUBMISSION PROCESS",5,2
+2017,"Seghier TE","Building Envelope Thermal Performance Assessment Using Visual Programming and BIM, based on ETTV requirement of Green Mark and GreenRE",2,11
+2019,"Seghier TE","Automation of Concrete Usage Index (CUI) assessment using computational BIM",2,5
+2014,"Singh R","Implementation of an advanced hybrid MPC-PID control system using PAT tools into a direct compaction continuous pharmaceutical tablet manufacturing pilot plant",14,65
+2021,"Sobhkhiz S","Framing and Evaluating the Best Practices of IFC-Based Automated Rule Checking: A Case Study",1,0
+2015,"Solihin W","Classification of rules for automated BIM rule checking development",2,102
+2021,"Soliman J","Automated compliance checking in healthcare building design",2,2
+2022,"Soliman J","Designers' perspective on the use of automation to support regulatory compliance in healthcare building projects",2,0
+2020,"Soliman J","A semantic-based framework for automated rule checking in healthcare construction projects",2,6
+2020,"Song J","Deep learning-based extraction of predicate-argument structure (PAS) in building design rule sentences",5,2
+2007,"Steggles LJ","Qualitatively modelling and analysing genetic regulatory networks: a Petri net approach",3,91
+2020,"Sydora C","Rule-based compliance checking and generative design for building interiors using BIM",2,10
+2010,"Tan XY","Automated Code Compliance Checking for Building Envelope Design",1,55
+2020,"Tang S","Human-object interaction recognition for automatic construction site safety inspection",1,13
+2015,"Uhm M","Requirements for computational rule checking of requests for proposals (RFPs) for building designs in South Korea",2,15
+2015,"Wang J","Geotechnical and safety protective equipment planning using range point cloud data and rule checking in building information modeling",6,65
+2019,"Wang Q","Automatic checks from 3D point cloud data for safety regulation compliance for scaffold work platforms",6,10
+2009,"Wollbold J","Adapted Boolean network models for extracellular matrix formation",3,11
+2021,"Wu HT","On-Site Construction Quality Inspection Using Blockchain and Smart Contracts",1,1
+2019,"Wu YJ","Automated 'Eye-sight' Venetian blinds based on an embedded photometric device with real-time daylighting computing",14,5
+2019,"Xiong RX","Onsite video mining for construction hazards identification with visual relationships",1,10
+2019,"Xu XW","Designing blockchain-based applications a case study for imported product traceability",1,63
+2022,"Xue XR","Semiautomated Generation of Logic Rules for Tabular Information in Building Codes to Support Automated Code Compliance Checking",1,0
+2021,"Xue XR","Part-of-speech tagging of building codes empowered by deep learning and transformational rules",1,1
+2020,"Xue XR","Building Codes Part-of-Speech Tagging Performance Improvement by Error-Driven Transformational Rules",1,5
+2004,"Yang QZ","Design knowledge modeling and software implementation for building code compliance checking",1,25
+2014,"Yao C","A Two-Mode Control Scheme With Input Voltage Feed-Forward for the Two-Switch Buck-Boost DC-DC Converter",3,70
+2019,"Yuan JF","Accident prevention through design (PtD): Integration of building information modeling and PtD knowledge base",6,27
+2015,"Zhang C","INTEROPERABLE VALIDATION FOR IFC BUILDING MODELS USING OPEN STANDARDS",5,19
+2015,"Zhang D","Automatic fish taxonomy using evolution-constructed features for invasive species removal",6,1
+2015,"Zhang JS","Automated Information Transformation for Automated Regulatory Compliance Checking in Construction",1,46
+2017,"Zhang JS","Semantic-Based Logic Representation and Reasoning for Automated Regulatory Compliance Checking",1,17
+2017,"Zhang JS","Integrating semantic NLP and logic reasoning into a unified system for fully-automated code checking",1,57
+2016,"Zhang JS","Semantic NLP-Based Information Extraction from Construction Regulatory Documents for Automated Compliance Checking",1,90
+2016,"Zhang JS","Extending Building Information Models Semiautomatically Using Semantic Natural Language Processing Techniques",1,29
+2021,"Zhang RC","Clustering-Based Approach for Building Code Computability Analysis",1,1
+2019,"Zhong BT","A scientometric analysis and critical review of construction related ontology research",1,43
+2015,"Zhong BT","An ontological approach for technical plan definition and verification in construction",1,23
+2022,"Zhong BT","Automatic Information Extraction from Construction Quality Inspection Regulations: A Knowledge Pattern-Based Ontological Method",1,0
+2018,"Zhong BT","Ontology-based framework for building environmental monitoring and compliance checking under BIM environment",1,29
+2020,"Zhong BT","Hyperledger fabric-based consortium blockchain for construction quality information management",1,20
+2012,"Zhong BT","Ontology-based semantic modeling of regulation constraint for automated construction quality compliance checking",1,67
+2020,"Zhong BT","Deep learning-based extraction of construction procedural constraints from construction regulations",1,18
+2017,"Zhou P","Ontology-based automated information extraction from building energy conservation codes",1,46
+2016,"Zhou P","Domain-Specific Hierarchical Text Classification for Supporting Automated Environmental Compliance Checking",1,14
+2021,"Zhou P","Semantic information alignment of BIMs to computer-interpretable regulations using ontologies and deep learning",1,0
+2016,"Zhou P","Ontology-Based Multilabel Text Classification of Construction Regulatory Documents",1,21

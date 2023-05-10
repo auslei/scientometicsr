@@ -28,7 +28,9 @@ gen_navbar_filters <- function(df, ns){
                              selected = c("publication", "wos_category")),
           checkboxInput(inputId = ns("chk_search_regex"), label = "Regular Expression", value = T),
           style = "background: rgba(255, 255, 255, .2); margin-top: 5%; margin-bottom: 5%; margin-left: 10%;"
-        )
+        ),
+        checkboxInput(inputId = ns("chk_core_authors"), label = "Show Relevant Authors", value = T)
+        
       )
       filters
     }, 
@@ -88,6 +90,12 @@ mod_data_filter_server <- function(id, data) {
         req(data())
         
         ret <- data()
+        
+        if(isTruthy(input$chk_core_authors)) {
+          if (input$chk_core_authors){
+            ret <- ret %>% filter(core_author == T)
+          }
+        }
         
         #cat(file = stderr(), "module_data_filter:observeEvent(filter data) ",
         #     nrow(rv$df), " rows are being filtered.", "\n")

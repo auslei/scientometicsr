@@ -147,22 +147,90 @@ generate_author_network <- function(df) {
 
 
 # plot communit using visNetwork
-plot_visnetwork <- function(g, wc = NULL, layout = "layout_nicely"){
+plot_visnetwork <- function(g, wc = NULL, layout = "layout_nicely", using_degree = F){
 
   vis_data <- toVisNetworkData(g)
-  if(is.null(wc))
-    vis_data$nodes$group = V(g)$membership
-  #browser()
-  visNetwork(nodes = vis_data$nodes, edges = vis_data$edges) %>%
-    visIgraphLayout(layout = layout, physics = F, smooth = T, type = "square") %>%
+  
+  #hchart(vis_data$nodes$value)
+  if(using_degree)
+    vis_data$nodes$value <-  degree(g)[match(V(g)$name, names(degree(g)))] 
+  
+  if(!is.null(wc))
+    vis_data$nodes$group = wc$membership
+  
+  print(head(vis_data$nodes))
+  print(head(vis_data$edges))
+  
+  
+  vis_data$nodes$font = list(size = 0)
+  vis_data$nodes$label = ""
+  #vis_data$nodes$shape = "cirle"
+  
+  visNetwork(nodes = vis_data$nodes, edges = vis_data$edges, width = "100%", height = 1080) %>%
+    visIgraphLayout(layout = layout, physics = F, smooth = T, type = "full") %>%
     visOptions(highlightNearest = list(enabled = T, degree = 2, hover = F), 
-               nodesIdSelection = T, selectedBy = "group")
+               nodesIdSelection = F, selectedBy = "group")
+    
 }
 
 # plot a specific graph grooup
 plot_community <- function(g, wc, index, layout = "layout_nicely") {
   sub_graph = induced_subgraph(g, V(g)[wc$membership == index])
-  wc_louvain <- cluster_louvain(sub_graph)
-  plot_visnetwork(sub_graph, wc = wc_louvain, layout = layout)
+  #wc_louvain <- cluster_louvain(sub_graph)
+  plot_visnetwork(sub_graph, layout = layout, using_degree = T)
 }
 
+
+# generate graphcs
+generate_network <- function(df){
+  
+  #df_core_authors <- df %>% filter(author %in% core_authors) #getting only core authors
+  
+  df_summary <- df %>% filter(core_author == T) %>%
+    select(author, doi, citations, score) %>% 
+    group_by(author) %>% 
+    summarise(n = n_distinct(doi), avg_citations = floor(mean(citations)), score = round(sum(score), 0), citations = sum(citations)) %>% 
+    arrange(desc(n))
+  
+  df_ref <- generate_reference_table(df)
+  
+  # edge
+  v <- df_summary %>%
+    select(id = author, label = author, value = score, citations)
+  
+  e <- df_ref %>% 
+    select(from = author, to = referenced_author) %>%
+    filter(from %in% v$id & to %in% v$id)
+  
+  
+  # generating weights irrespective to direction
+  x <- e %>% mutate(x = ifelse(from > to, paste(to, from, sep = ";"), paste(from, to, sep = ";"))) %>% 
+    group_by(x) %>% 
+    summarise(weight = n(), .groups = "drop") %>%
+    separate(x, c("from", "to"), sep = ";")  
+  
+  
+  g <- graph_from_data_frame(x, vertices = v, directed = F) #directed graph
+  
+  cluster_algo <- cluster_louvain
+  
+  
+  wc <- cluster_algo(g)
+  
+  print(paste(length(wc), "communities found.."))
+  
+  keep = which(table(wc$membership) > 1)
+  sub_g <- induced_subgraph(g, V(g)[(wc$membership %in% keep) | V(g)$value > 15])
+  print(paste(length(V(sub_g)), "verticies filtered out"))
+  
+  sub_wc <- cluster_algo(sub_g)
+  print(paste(length(sub_wc), " louvain communities found.."))
+  
+  #list all communities from highest membership to lowest membership
+  communities <- table(sub_wc$membership) %>%
+    as.data.frame(col.names = c("community", "members")) %>% 
+    rename(community = Var1, members = Freq) %>% 
+    arrange(desc(members)) 
+  
+  return(list(g = sub_g, wc = sub_wc, communities = communities))
+}

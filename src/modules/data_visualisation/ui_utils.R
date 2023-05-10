@@ -27,7 +27,7 @@ plot_publication_trend <- function(df, include_total_citations = T){
       
     } else {
       hc <- hc %>% hc_add_series(data = df_summary, mapping = hcaes(x = year, y = n_pubs), 
-                                 name = "#puiblications", type = 'column', color = "lightblue", alpha = 0.5) 
+                                 name = "#publications", type = 'column', color = "lightblue", alpha = 0.5) 
       hc <- hc %>% hc_add_series(data = df_summary, mapping = hcaes(x = year, y = tc), 
                                  name = "total citations", type = 'spline', color = "orange", yAxis = 1) 
     }
@@ -53,11 +53,18 @@ gen_tree_map_chart <- function(df, category, limit_data = 25){
     req(df)
     
     if(nrow(df) > 0) {
-      df_summary <- df %>% 
-        group_by_at(category) %>% 
-        summarise(n = n(), s = sum(citations)) %>% 
-        arrange(desc(s)) %>% head(limit_data)
-      
+      if(category == "wos_category") {
+        df_summary <- df %>% separate_rows(wos_category, sep = ";") %>% 
+          mutate(wos_category = trimws(wos_category)) %>% 
+          group_by(wos_category) %>% summarise(n = n(), s = sum(citations)) %>% 
+          arrange(desc(s)) %>% head(limit_data)
+        
+      } else {
+        df_summary <- df %>% 
+          group_by_at(category) %>% 
+          summarise(n = n(), s = sum(citations)) %>% 
+          arrange(desc(s)) %>% head(limit_data)
+      }
       hchart(df_summary, "treemap", hcaes(x = !!category, value = n, color = s)) %>%
         hc_exporting(enabled = TRUE)
     }
@@ -107,7 +114,7 @@ plot_wordcloud <- function(df, type = "raw", ngram = 2){
               arrange(desc(freq)) %>% 
               as.data.frame()
     
-    wc <- wordcloud2(data = wc_data %>% head(500), size = 2)
+    wc <- wordcloud2(data = wc_data %>% head(200), size = 2)
 
     wc
     
@@ -157,11 +164,12 @@ gen_impact_summary <- function(df, type = "author"){
     cat(file = stderr(), "ui_utils.R/gen_impact_summary: ", nrow(df), " rows, type = ", type, "\n")
     ret <- df %>%
       group_by_at(grouping) %>%
-      dplyr::summarise(n_articles = n_distinct(doi), total_citations = sum(citations)) %>%
-      arrange(desc(total_citations), desc(n_articles))
+      #dplyr::summarise(n_articles = n_distinct(doi), total_citations = sum(citations)) %>%
+      dplyr::summarise(n = n_distinct(doi), avg_citations = floor(mean(citations)), score = round(sum(score), 0), citations = sum(citations)) %>% 
+      arrange(desc(score), desc(n))
     
     if(type != "author")
-      ret <- ret %>% select(-n_articles)
+      ret <- ret %>% select(-n)
     
     ret
   }, error = function(e){

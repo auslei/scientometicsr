@@ -74,8 +74,8 @@ mod_data_summary_tab_server <- function(id, data){
         box(title = "Journals/Conferences", width = "100%", 
             radioButtons(inputId = ns("gs_radio_type"), 
                          label = "Category",
-                         choiceValues = c("publication", "publication_type"),
-                         choiceNames = c("Publication", "Publication Type"),
+                         choiceValues = c("publication", "publication_type", "wos_category"),
+                         choiceNames = c("Publication", "Publication Type", "Research Area"),
                          selected = "publication", inline = T),
             highchartOutput(ns("treemap"))
         )

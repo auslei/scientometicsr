@@ -7,6 +7,40 @@ library(tools)
 library(SnowballC)
 library(word2vec)
 library(tokenizers)
+library(lubridate)
+
+
+#'@description Generate reference summary from a data frame, expanding author + doi article references
+#'@param df either full or filtered dataframe
+#'@return reference summary
+generate_reference_table <- function(df){
+  
+  author_pat <- "^([a-zA-Z ]+.), \\d{4}"
+  doi_pat <- "10\\.\\w+\\/[^\\]]+"
+  
+  ret <- df %>% filter(publication_type == "Journal") %>%
+    #filter(!is.na(year)) %>%
+    select(doi, author, year, title, cited_references) %>%
+    mutate(referenced_doi = extract_split(cited_references),
+           referenced_author = extract_split(cited_references, pattern = author_pat)) %>%
+    unnest(cols = c(referenced_doi, referenced_author)) %>%
+    select(year, title, doi, author, referenced_doi, referenced_author) %>%
+    rowwise() %>%
+    mutate(author = gsub(",", "", author),
+           referenced_author = gsub("\\.", "", trimws(str_split(referenced_author, ',')[[1]][1]))) #%>%
+  #filter(!(is.na(referenced_doi) && is.na(referenced_author)))
+  
+  ret
+}
+
+
+f <- function(val, vect){
+    if(val %in% vect)
+      return(T) 
+    else 
+      return (F)
+}
+
 
 # custom stop-words
 customer_sw <- c('automated', 'automation', 'building', 'construction', 'code', 'compliance', 'machine', 'learning', 'na')
@@ -42,29 +76,46 @@ format_keywords <- function(text, sep = ";"){
 #' @param  file_path path to the tsv WoS file
 #' @return data frame with all data for the specific file
 read_wos_data_file <- function(file_path) {
+  current_year <- year(Sys.Date())
+  alpha <- 0.9
   
-  read_tsv(file = file_path) %>%
-    select(authors = AU, researchId = RI, title = TI, abstract = AB, publication = SO, conference = CT, keywords = DE, 
-           keywordsp = ID, researcher_id = RI, doi = DI, book_doi = D2, cited_references = CR,
-           citations = Z9, references = NR, publisher = PU, ISSN = SN, ISBN = BN, year = PY, wos_category = WC,
-           research_area = SC, publication_type = PT) %>% 
-    replace_na(list(abstract = "", keywords = "", keywordsp = "")) %>%
-    rowwise() %>%
-    mutate(author = str_split(authors, ";")[[1]][1],
-           raw_text = tolower(paste(abstract, keywords, keywordsp)),
-           clean_text = text_cleanse(raw_text),
-           formated_keywords = format_keywords(paste(keywords, keywordsp, sep = ";")),
-           publication_type = ifelse(publication_type == "J", "Journal",
-                                     ifelse(publication_type == "B", "Book",
-                                            ifelse(publication_type == "S", "Series",
-                                                   ifelse(publication_type == "P", "Patent",
-                                                          ifelse(publication_type == "C", "Conference",
-                                                                 publication_type)))))
-    ) %>% 
-    ungroup() %>%
-    mutate(doc_id = row_number())
+  df <- read_tsv(file = file_path) %>%
+          select(authors = AU, researchId = RI, title = TI, abstract = AB, publication = SO, conference = CT, keywords = DE, 
+                 keywordsp = ID, researcher_id = RI, doi = DI, book_doi = D2, cited_references = CR,
+                 citations = Z9, references = NR, publisher = PU, ISSN = SN, ISBN = BN, year = PY, wos_category = WC,
+                 research_area = SC, publication_type = PT) %>% 
+          replace_na(list(abstract = "", keywords = "", keywordsp = "")) %>%
+          rowwise() %>%
+          mutate(author = str_split(authors, ";")[[1]][1],
+                 raw_text = tolower(paste(abstract, keywords, keywordsp)),
+                 clean_text = text_cleanse(raw_text),
+                 formated_keywords = format_keywords(paste(keywords, keywordsp, sep = ";")),
+                 score = ifelse(is.na(year), 0, alpha^(current_year-year) * citations),
+                 is_eng_cons = ifelse(str_detect(tolower(publication), "civil|construction|engin"), 1, 0),
+                 publication_type = ifelse(publication_type == "J", "Journal",
+                                           ifelse(publication_type == "B", "Book",
+                                                  ifelse(publication_type == "S", "Series",
+                                                         ifelse(publication_type == "P", "Patent",
+                                                                ifelse(publication_type == "C", "Conference",
+                                                                       publication_type)))))
+          ) %>% mutate(author = gsub(",", "", author)) %>%
+          ungroup() %>%
+          mutate(doc_id = row_number())# combine all text you can find
   
-    # combine all text you can find
+  # generate reference table
+  df_ref <- generate_reference_table(df) %>%
+    filter(!is.na(referenced_author))
+  
+  #TODO: Not used
+  #df_ref_exclud_self_ref <- df_ref %>% filter(author != referenced_author) # excluding self-reference
+  
+  core_authors <- intersect(df_ref$author, df_ref$referenced_author) # this is to ensure referenced author also published in the area
+  print(core_authors)
+  
+  
+  df$core_author = df$author %in% core_authors
+  
+  df
 }
 
 #'@description Read data file from a literature indexing service

@@ -365,7 +365,8 @@ strong_connection <- c(1, 2, 12)
 weak_connection <- c(8, 40)
 
 V(sub_g)$community <- sub_wc$membership
-connected_graph_strong <- induced_subgraph(sub_g, V(sub_g)$membership %in% strong_connection)
+
+connected_graph_strong <- induced_subgraph(sub_g, V(sub_g)$community %in% strong_connection)
 
 plot_visnetwork(connected_graph_strong)
 

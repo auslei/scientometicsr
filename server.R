@@ -19,7 +19,7 @@ server <- function(input, output, session) {
     req(filtered_data())
     gen_information_boxes(filtered_data())
   })
-  
+   
   output$data_table <- renderDataTable({
     req(filtered_data())
     cat(file = stderr(), "server.R/data_table: render data_table output for raw data.", "\n")

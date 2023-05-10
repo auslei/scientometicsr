@@ -1,6 +1,8 @@
 ---
 title: "Literature Review"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE, warning = F, echo = F}
@@ -15,6 +17,7 @@ library(xtable)
 library(igraph)
 library(visNetwork)
 library(wordcloud2)
+library(scales)
 
 knitr::opts_chunk$set(echo = F, warning = F)
 
@@ -26,27 +29,89 @@ df <- read_wos_data_file("~/Downloads/savedrecs.txt") %>%
 print(paste("loaded ", nrow(df), "rows..."))
 ```
 
+# Literature Review Approach
+<br /> 
+Citation indexing services collects and maintains a large collection of research literatures from various sources. The most popular citation indexing services are Web Of Science (WoS) from Clarivate, Scopus from Reed Elsevier and Google Scholar. All services provides multidisciplinary citation indexing (Michael Norris, 2007). 
+<br /> 
 
-# Summary
-Search results are loaded with `r nrow(df)` articles. 
+There are numerous articles published to compare these services, primarily in terms of coverage and influence. The author do not intend to discuss the comparison in this document. However, it is worth noting that that Google Scholar provides a larger collection of citations of all areas, while WoS and Scopus provides similar results (Martín-Martín, 2018). The drawback of using Google Scholar in this review is the capabilities for exporting citation search results due to Google’s agreement limitations with publishers.
+<br /> 
+<br /> 
+Web of Science (WoS) is used in data collection as it maintains a reasonably updated index of published literature (estimated at around 4-8 weeks) from various databases, provides an ease of use interface, more importantly search results can be downloaded into tab delimited values (TSV) data files.
+<br /> 
+<br /> 
+All citation indexing service provides allow users to perform advanced search on attributes such as topic, author, research areas, date of publication, etc. Users can also expand the search results to include relevant articles based on citation references. Whist this can be quite effective for manual research, the refined search may inadvertently filter out some literature of interest. The goal for the initial research is to cover a broad range of literature, therefore author opted by searching only topic via pattern (simple regular expression) and a set of logical operators. Search criteria is shown below:
+<br /> 
+<br /> 
+
+- Highlighting automation: [automat*] AND;&nbsp;
+- Highlighting industry: [building or construction or “civil engineering” or architecture] AND;&nbsp;
+- Highlighting regulation: [“building code” OR “construction code” OR compliance OR regulat*] AND;&nbsp;
+- Highlighting action: check or validat* or audit*&nbsp;
+<br /> 
+<br /> 
+
+The idea is to broadly search for information from indexing services, then distill information into key areas for further studies. The search has resulted in 732 articles from covering various different areas, primarily under AEC (architecture, engineering and construction industries). 
+<br /> 
+<br /> 
+The review process involves three key steps, described in details in the following sub-sections.
+<br /> 
+<br /> 
+The chart below illustrates, on a topic level distribution of all literature. The categories are defined by WOS. 
+<br /> 
+<br /> 
+```{r category_chart, echo=FALSE}
+
+df_summary <- df %>% select(doc_id, wos_category, doi, citations) %>% 
+                  separate_rows(wos_category, sep = ";") %>% 
+                  mutate(wos_category = trimws(wos_category)) %>% 
+                  group_by(wos_category) %>% 
+                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations))) %>% 
+                  arrange(desc(n)) %>% head(25)
+
+
+hc <- highchart() %>%
+      hc_title(text = "Literature Trends") %>%
+      hc_legend(enabled = T) %>%
+      hc_xAxis(categories = df_summary$wos_category) %>%
+      hc_yAxis(title = list(text = "WOS Category")) %>%
+      hc_subtitle(title = "Literature distribution across different areas") %>%
+      hc_caption(text = "Figure 2 - Literature distribution across different areas") %>%
+      hc_add_series(data = df_summary, mapping = hcaes(x = wos_category, y = n), 
+                                   name = "Average citations", type = 'bar', color = "grey")  %>%
+      hc_plotOptions(column = list(
+        dataLabels = list(enabled = FALSE),
+        stacking = "normal",
+        enableMouseTracking = TRUE))
+```
+
+<center>`r hc`</center>
+
+*Search results are loaded with `r nrow(df)` articles.*
+<br /> 
+<br /> 
+
+## Data collection and selection
+<br /> 
+<br /> 
+It can be seen from the distribution that while some literatures maybe relevant and across multiple disciplines, some must be false positive. For example, it is very unlikely for “Genetics & Heredity” to be considered in automated compliance checks in construction industry, however it maybe possible for Transportations to be considered in compliance checks. To better understand areas, we can visualise keywords extracted from the articles. The below wordcloud highlights several areas of interest in the study, with Building Information Modelling (BIM) right in the centre (see Figure 3). 
+<br /> 
+<br /> 
+
+<center>r plot_wordcloud(df, "clean")</center>
+<br /> 
+<br /> 
 
 ## Distribution by Web Of Science Categories
-
+<br /> 
 The **Web Of Science** library finely categorises research literature, where each literature may reside in multiple categories. The analysis for which is done via separate categories (as each of the document will contain), then counting unique articles. \
 \
 \
 
 
 ```{r categories, echo=FALSE, results = 'asis'}
-df_summary <- df %>% select(doc_id, wos_category, doi, citations) %>% 
-                  separate_rows(wos_category, sep = ";") %>% 
-                  mutate(wos_category = trimws(wos_category)) %>% 
-                  group_by(wos_category) %>% 
-                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations))) %>% 
-                  arrange(desc(n))
-
-cat("**Top 10 categories from search result**\\")
-cat("\\")
+cat("**Top 10 categories from search result**<br />")
+cat("<br />")
 # display data table
 datatable(df_summary %>% head(10), 
           rownames = F,
@@ -54,22 +119,369 @@ datatable(df_summary %>% head(10),
           filter = "none", options = list(dom = 't')) 
 
 ```
+<br />
+<br />
 
+## Data Scope
+<br /> 
+
+The search results has a broader scope intentionally, including all conference articles, published journal papers, books and others. To perform author analysis, only published journal paper will be considered. This is to ensure that the comparison differentiates contribution using the same baseline. The other reason is that to confidently identify author, both author initials and article identifier (Digital Object ID) are required, and only published journals articles contains such information. As the goal is to understand high level contributions and thematics of study, the scope should contain sufficient information to accomplish set goal. 
+<br /> 
+
+In addition, the analysis considers only primary authors that has both published papers and also been referenced in the search results. Authors who has been referenced in the search result but with no publications may have been contributing to other domains. For example, H-Score has been discussed and referenced in this article, however it doesn’t necessarily contribute to the area of ACC. On the other hand, if author has published paper in the search result but have not been cited. There maybe 2 possibilities:
+<br /> 
+
+1. The author has published paper that has not (yet) contributed to the body of knowledge; or may have contributed to other areas;
+2. The paper in the search result may have been a false positive in the search result. This can happen as the search scope is general and broad.
+
+```{r refine_scope, echo=FALSE}
+
+outersect <- function(x, y) {
+  sort(c(setdiff(x, y),
+         setdiff(y, x)))
+}
+
+# generate reference table
+df_ref <- generate_reference_table(df) %>%
+          filter(!is.na(referenced_author))
+
+#TODO: Not used
+df_ref_exclud_self_ref <- df_ref %>% filter(author != referenced_author) # excluding self-reference
+
+core_authors <- intersect(df_ref$author, df_ref$referenced_author) # this is to ensure referenced author also published in the area
+
+total_authors <- length(unique(df$author))
+
+#print(paste(length(core_authors), "/", length(unique(df_ref$author)), " have both publish an article and been cited."))
+
+authors_not_referenced <- outersect(core_authors, df_ref$author)
+
+irrelevant_authors <- df %>% filter(author %in% authors_not_referenced) %>% 
+                    select(author, publication, year, title, citations, is_eng_cons) 
+
+# eng authors
+eng_authors <- irrelevant_authors %>% 
+  filter(is_eng_cons == 1) %>% pull(author)
+
+irrelevant_authors_summary <- irrelevant_authors %>% 
+                              group_by(author) %>% 
+                              filter(author %in% eng_authors) %>%
+                              summarise(n=n_distinct(title), total_citation = sum(citations)) %>%   
+                              arrange(desc(total_citation), desc(n))
+
+
+a <- irrelevant_authors_summary$author %>% head(10)
+#irrelevant_authors %>% filter(author %in% a)
+
+```
+<br /> 
+<br /> 
+
+By applying the above criteria,  `r total_authors - length(core_authors)` authors from the results has been filtered out, or roughly `r percent((total_authors - length(core_authors))/total_authors)``. While this seemed to be high, it can be proven the assumption is correct. In the 172 authors, only 28 authors in the search results where the paper are related to AEC (Architecture, Engineering and Construction).  The top cited papers from these authors are actually related in a different area in the domain. (See Table 1 for the top 10 authors and respective papers)
+
+<br /> 
+<br /> 
+
+```{r refine_scope_irrelavent, echo=FALSE}
+
+datatable(irrelevant_authors %>% 
+          filter(author %in% a) %>%
+          select(publication, author, year, title, citations) %>%
+          arrange(desc(citations)), 
+          rownames = F,
+          colnames = c("Research Area", "Number of Literatures", "Average Citations"),
+          filter = "none", options = list(dom = 't')) 
+
+```
+
+
+## Scoring
+
+<br /> 
+<br /> 
+
+Identify influential authors requiring modelling a comparative impact scale. Jorge Hirsch, presented h-index  in 2005, aims to provide a simplistic and objective measure (Ball, 2005). On top of h-index Joe, Egghe proposed g-index which aims at further improvement. (Egghe, 2006). Both of are ranking based methodology calculating top-n articles (reversely sorted by citations) where a function of n equates to a function of citations over total articles. For instance, h-index describes top-h articles where h is less than the number of citations of paper h, on the other hand g-index describes top-g articles where g2 is less than the cumulative sum of the citation. To fairly represent authors work full list of article in their research areas are expected to be retrieved, the limitation however is to look at author’s work in a more specialised area. While influential authors may still have a higher ranking due to he number of publications, however it will become more difficult to differentiate contributions. On the another hand, authors who typically research in more broader areas that has contributed to the industry may have a very low index. 
+
+<br /> 
+<br /> 
+
+Table 2 shows top 10 authors out of 641 authors in the search result, note that the 10th authors publications is 2, therefore that we can assume most of the authors in the domain will have a h-score/g-score of less than 2, far from differentiating influential authors. Thus, an alternative measure needs to be used.
+
+<br /> 
+<br /> 
 ```{r top_authors, echo=FALSE, results = 'asis'}
-df_summary <- df %>% select(author, doi, citations) %>% 
+df_summary <- df %>% filter(author %in% core_authors) %>%
+                  select(author, doi, citations, score) %>% 
                   group_by(author) %>% 
-                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations))) %>% 
+                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations)), score = round(sum(score), 0), citations = sum(citations)) %>% 
                   arrange(desc(n))
 
-df_author_score <- get_author_score(df)
+#df_author_score <- get_author_score(df)
 
-df_authors <- df_summary %>% left_join(df_author_score, by = "author") %>% arrange(desc(score))
+#df_authors <- df_summary %>% left_join(df_author_score, by = "author") %>% arrange(desc(score))
 
-cat("**Top 10 authors from search result**\\")
-cat("\\")
+cat("**Top 10 authors from search result**<br/>")
+cat("<br/><br/>")
 # display data table
-datatable(df_authors %>% head(10), 
+datatable(df_summary %>% head(10) %>% select(author, n, citations), 
           rownames = F,
-          colnames = c("Author", "Number of Literatures", "Average Citations", "Score", "Total Citations"),
+          colnames = c("Author", "Number of Literatures", "Total Citations"),
           filter = "none", options = list(dom = 't')) 
+```
+
+<br /> 
+<br /> 
+
+Simplistically, total citations as a means of measure maybe reasonable as the subset of domain specific data should not introduce objectivity issues the previous scoring methods aimed to solve. However, it may not fairly represent quality and contribution provided through time. For instance, Ethymios A. Delis, et al. described a general approach to identify any violations against Life Safety Code (Delis, 1995). The system “consists of a rule-based system, a frame-based system, and a set of geometric algorithms.” This paper is published in 1995, comparatively highest cited paper pre-2010 in ACC. In the paper, the author explored areas on how objects and relationships can be presented, how rules can be translated into programming language LISP and how geometric algorithms are used to elicit information from shapes captured. Whilst still relevant today, some of the key component has already improved over time, in terms data capturing Building Information Modelling (BIM) took off in the 2010s that streamlined construction project and enabled rich data capture for building objects (David Bryde, 2013), advances in natural language processing paves way for extracting regulatory requirements ((Jiansong Zhang, 2012) for automation. 
+
+<br /> 
+<br /> 
+
+The author propose to score authors in scope based on total citations factored with diminishing contributions based on the recency of article:
+
+<br /> 
+<br /> 
+
+<center>$S = \sum_{i=1}^{n}\alpha^{\delta}{C}_i$</center>
+
+<br /> 
+<br /> 
+
+Where the score S is the score, which is a sum of citations C, factored by coefficient  to the power of  - years since paper was published. In the analysis,  of 0.9 is used, describing that an article 10% less significant compared previous year. Using this method,  it can be seen that authors contribute more to recent articles are ranked higher, and ranking are more spread out as compared to using h-score/g-score.  Top 10 authors are shown below (Table 3):
+
+<br /> 
+<br /> 
+```{r}
+datatable(df_summary %>% arrange(desc(score)) %>% head(10) %>% select(author, score, citations), 
+          rownames = F,
+          colnames = c("Author",  "Score", "Total Citations"),
+          filter = "none", options = list(dom = 't'))
+```
+## Author Citation Network Analysis
+
+To identify sub-domains of study, cross reference between authors are used to understand communities formed. Typically authors are specialised in one domain of study, the aforementioned search criteria should have already restricted to articles of interest. To understand influential authors can help better understand core studies in each of the communities in comparison of looking at cross citation relationship between literatures. 
+
+<br /> 
+
+Authors can be viewed as vertices of the network, the size of contribution described by score calculated using methodology above. Edges are denoted by references to another authors publication, with weighting denoted by number of times a pair of authors citing each other. It may be worth to re-iterate that the scope of authors are ones published articles in the search results. There is a direction relationship between reference and referenced, however the goal is to finding communities of authors where their studies are related, therefore direction is useful to a degree, but not significant. Using Louvin community detection algorithm  developed by Blondel et al. (Blondel, 2008), eliminating smaller singular communities except for ones with larger citations base (greater than 3rd quantile). 47 communities can be defined, it can be visualised below that there is a large cluster of interlinked communities surrounded by smaller communities or self-citing authors.
+
+
+```{r creating_author_graph, echo = FALSE, results = 'asis'}
+
+df_core_authors <- df %>% filter(author %in% core_authors) #getting only core authors
+
+df_summary <- df %>% filter(author %in% core_authors) %>%
+                  select(author, doi, citations, score) %>% 
+                  group_by(author) %>% 
+                  summarise(n = n_distinct(doi), avg_citations = floor(mean(citations)), score = round(sum(score), 0), citations = sum(citations)) %>% 
+                  arrange(desc(n))
+
+df_ref <- generate_reference_table(df_core_authors)
+
+# edge
+v <- df_summary %>%
+     select(id = author, label = author, value = score, citations)
+  
+e <- df_ref %>% 
+     select(from = author, to = referenced_author) %>%
+     filter(from %in% v$id & to %in% v$id)
+
+
+# generating weights irrespective to direction
+x <- e %>% mutate(x = ifelse(from > to, paste(to, from, sep = ";"), paste(from, to, sep = ";"))) %>% 
+      group_by(x) %>% 
+      summarise(weight = n(), .groups = "drop") %>%
+      separate(x, c("from", "to"), sep = ";")  
+
+
+g <- graph_from_data_frame(x, vertices = v, directed = F) #directed graph
+
+```
+
+```{r visualising_graph, echo=FALSE, message=FALSE}
+#wc_edge <- cluster_edge_betweenness(g)
+#print(paste(length(wc_edge), " edge communities found.."))
+
+#wc_louvain <- cluster_louvain(g)
+#print(paste(length(wc_louvain), " louvain communities found.."))
+
+cluster_algo <- cluster_louvain
+
+#wc_walk <- cluster_walktrap(g)
+#print(paste(length(wc_walk), " walk communities found.."))
+
+#wc_infomap <- cluster_infomap(g)
+#print(paste(length(wc_infomap), " walk communities found.."))
+
+wc <- cluster_algo(g)
+
+print(paste(length(wc), "communities found.."))
+
+keep = which(table(wc$membership) > 1)
+sub_g <- induced_subgraph(g, V(g)[(wc$membership %in% keep) | V(g)$value > 15])
+print(paste(length(V(sub_g)), "verticies filtered out"))
+
+sub_wc <- cluster_algo(sub_g)
+print(paste(length(sub_wc), " louvain communities found.."))
+
+#list all communities from highest membership to lowest membership
+communities <- table(sub_wc$membership) %>%
+               as.data.frame(col.names = c("community", "members")) %>% 
+               rename(community = Var1, members = Freq) %>% 
+               arrange(desc(members)) 
+
+```
+</br>
+</br>
+<center>`r plot_visnetwork(sub_g, sub_wc)`</center>
+
+</br>
+</br>
+There are only `r nrow(filter(communities, members > 10))` communities that has 10 or more members, then rapidly scaled down into smaller, isolated entities. then rapidly scaled down into smaller, isolated entities. These large communities defines close collaborations between authors, each will then be further studied.
+
+</br>
+</br>
+
+```{r visualising_network}
+plot_community(sub_g, sub_wc, 1)
+
+```
+<br />
+<br />
+
+A quick text analysis was conducted summarise key themes authors from each community is concerned with.  Top 15 highest bi-grams (2 words) having the highest TF-IDF (Robinson, 2017) are selected for each of the communities with 5 or more members. By looking at bi-grams for each of group, we are able to establish a general theme of the topics revolving these author communities. 
+
+<br />
+<br />
+
+```{r keywords_analysis, echo=FALSE}
+# assign authors to communities
+
+author_communities <- as.data.frame(list(author=names(V(sub_g)), 
+                                         community=sub_wc$membership), 
+                                    stringsAsFactors=FALSE)
+
+community_summary <- author_communities %>% 
+                      group_by(community) %>% 
+                      summarise(n = n()) %>% 
+                      arrange(desc(n))
+
+df_merged <- df %>% merge(author_communities, by = "author") %>% 
+                    select(doc_id, author, community, title, abstract, year, doi,
+                           raw_text, clean_text, formated_keywords, citations)
+
+
+sw <- c("compliance", "check", "automated", "building", "constructions", "building", "code", "information")
+sw <- c(sw, stop_words$word)
+sw <- wordStem(sw)
+
+bigram <- df_merged %>% 
+            unnest_tokens(bigram, clean_text, token = "ngrams", n = 2) %>%
+            separate(bigram, c("word1", "word2"), sep = " ") %>%
+            filter(!word1 %in% sw & !word2 %in% sw) %>%
+            select(doc_id, author, community, word1, word2) %>%
+            mutate(bigram = paste(word1, word2))
+
+
+bigram_counts <- bigram %>% 
+                 group_by(community) %>%
+                 count(bigram, sort = TRUE) %>%
+                 bind_tf_idf(bigram, community, n) %>% arrange(desc(tf_idf), desc(n))
+
+#%>% slice_max(order_by = n, 5)
+community_inclusion <- filter(community_summary, n >=5)$community
+bigram_counts_top5 <- slice_head(bigram_counts, n = 15) %>% filter(community %in% community_inclusion)
+
+
+bigram_counts_top5 %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(bigram, tf_idf), fill = community)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~community, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+
+```
+<br />
+<br />
+From the keywords, we can loosely determine that apart from group 2, the other groups are more relevant to ACC. This is also visible on the Figure 4, where groups **1, 3, 5, 6, 11** represent central cluster of interrelated author communities and group **2** is the large community (yellow) not related to the others. 
+<br />
+<br />
+
+
+With a bit of further textual analysis, themes for each of the community can be summarised below:
+
+```{r text_summarise, echo = FALSE, warning=FALSE, message=FALSE}
+
+library(lexRankr)
+
+sent <- df_merged %>% unnest_sentences(sent, abstract, doc_id = doc_id) %>%
+  select(doc_id, sent_id, sent, community)
+
+top3s <- sent %>% filter(community %in% c(1,2,3,5,6,11)) %>%
+  group_by(community) %>% summarise(x = lexRank(sent, n = 3, continuous = T)) %>%
+  unnest(x) %>% select(community, sentence)
+
+datatable(top3s %>% 
+            mutate(sentence = paste0("<li>", sentence, "</li>")) %>%
+            summarise(all_sent = paste(sentence, collapse = "<br />")), 
+          rownames = F,
+          colnames = c("Community",  "Sentences"),
+          filter = "none", options = list(dom = 't', pageLength = 10000), escape = FALSE)
+
+```
+
+```{r isolated_articles, echo = FALSE}
+df_isolated <- df_merged %>% filter(!community %in% c(1,2,3,5,6,11))
+
+bigram_iso <- df_isolated %>% 
+            unnest_tokens(bigram, clean_text, token = "ngrams", n = 2) %>%
+            separate(bigram, c("word1", "word2"), sep = " ") %>%
+            filter(!word1 %in% sw & !word2 %in% sw) %>%
+            select(doc_id, author, community, word1, word2) %>%
+            mutate(bigram = paste(word1, word2))
+
+bigram_iso_summary <- bigram_iso %>% group_by(bigram) %>% summarise(n = n()) %>% arrange(desc(n))
+
+iso_key <- bigram_iso_summary %>% head(10) %>%
+            ungroup() %>%
+            ggplot(aes(n, fct_reorder(bigram, n), fill = 1)) +
+            geom_col(show.legend = FALSE) +
+            labs(x = "n", y = NULL)
+
+
+iso_wc <- wordcloud2(bigram_iso_summary)
+
+```
+
+<br />
+<br />
+
+**Top 10 keywords for isolated communities**
+```{r}
+bigram_iso_summary %>% head(10) %>%
+            ungroup() %>%
+            ggplot(aes(n, fct_reorder(bigram, n), fill = 1)) +
+            geom_col(show.legend = FALSE) +
+            labs(x = "n", y = NULL)
+``` 
+
+**Wordcloud for for isolated communities**
+`r iso_wc` 
+
+```{r relevant_network}
+strong_connection = c(1,3,5,6, 11)
+
+V(sub_g)$group <- sub_wc$membership
+connected_graph_strong <- induced_subgraph(sub_g, V(sub_g)$group %in% strong_connection)
+
+plot_visnetwork(connected_graph_strong)
+
+```
+
+```{r authors_in_bim}
+
+authors_in_bim <- df_merged %>% filter(community %in% c(5,11)) %>% .$author %>% unique()
+df_authors_in_bim <- df %>% filter(author %in% authors_in_bim) %>% 
+                            arrange(desc(score)) %>% select(author, year, doi, title, score, citations)
+
 ```
